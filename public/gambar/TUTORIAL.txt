@@ -1,0 +1,112 @@
+=====================================================================
+ TUTORIAL GAMBAR - WEBSITE GIBEI UNIMED
+=====================================================================
+
+Website ini TIDAK menyediakan unggah file langsung. Untuk menampilkan
+gambar (foto pengurus, sampul artikel, foto album galeri), isi kolom
+"URL gambar" di dashboard dengan salah satu dari dua cara di bawah.
+
+
+---------------------------------------------------------------------
+ CARA A - GAMBAR LOKAL (disimpan di folder ini)  [DIREKOMENDASIKAN]
+---------------------------------------------------------------------
+Cocok untuk foto yang ingin dijamin selalu tampil dan tidak bergantung
+layanan lain.
+
+Struktur folder:
+
+  public/gambar/
+  |-- pengurus/   -> foto profil pengurus
+  |-- artikel/    -> gambar sampul artikel
+  |-- galeri/     -> foto album dokumentasi kegiatan
+  |-- TUTORIAL.txt (file ini)
+
+Langkah:
+  1. Siapkan foto. Ubah namanya menjadi huruf kecil, tanpa spasi,
+     tanpa karakter khusus. Pakai tanda hubung (-) sebagai pemisah.
+       BAGUS : spm-batch-1-pembukaan.jpg
+       SALAH : Foto SPM (1) FINAL!!.JPG
+  2. Salin file ke subfolder yang sesuai, contoh:
+       public/gambar/galeri/spm-batch-1-pembukaan.jpg
+  3. Di dashboard, isi kolom URL gambar dengan path yang diawali
+     garis miring "/gambar/", contoh:
+       /gambar/galeri/spm-batch-1-pembukaan.jpg
+  4. Simpan. Gambar langsung tampil saat server berjalan.
+
+Aturan path lokal:
+  - Harus diawali  /gambar/
+  - Ekstensi yang diterima: .jpg .jpeg .png .webp .gif .avif
+  - Tidak boleh ada spasi, "..", atau "//"
+  - PENTING: tulis path-nya "/gambar/..." BUKAN "public/gambar/..."
+    (kata "public" tidak ikut ditulis)
+
+Saat website sudah online (Vercel):
+  File di folder public/ ikut terkirim bersama kode. Jadi setelah
+  menambah foto baru, commit ke Git lalu deploy ulang:
+       git add public/gambar
+       git commit -m "tambah foto kegiatan"
+       git push
+  Foto yang baru ditambahkan baru bisa dipakai setelah deploy selesai.
+
+Ukuran & format yang disarankan (supaya halaman cepat dibuka):
+  - Foto pengurus   : persegi (rasio 1:1), sekitar 400 x 400 px
+  - Sampul artikel  : rasio 16:9, sekitar 1200 x 675 px
+  - Foto galeri     : sisi terpanjang maksimal 1600 px
+  - Ukuran file     : usahakan di bawah 500 KB per foto
+  - Format          : .webp atau .jpg (hasil kompres)
+  Alat kompres gratis: squoosh.app, tinypng.com
+
+
+---------------------------------------------------------------------
+ CARA B - URL EKSTERNAL (gambar sudah ada di internet)
+---------------------------------------------------------------------
+Cocok untuk foto yang sudah diunggah ke layanan lain.
+
+  1. Unggah foto ke layanan hosting gambar (mis. Imgur, Cloudinary,
+     ImgBB, atau Postimages).
+  2. Salin "direct link" gambar, yaitu tautan yang berakhir dengan
+     .jpg / .png / .webp dan langsung menampilkan gambar saja.
+       Contoh: https://i.imgur.com/abc123.jpg
+  3. Tempel tautan itu ke kolom URL gambar di dashboard.
+
+Aturan URL eksternal:
+  - Harus diawali https:// (atau http://)
+  - Harus tautan langsung ke gambar, BUKAN halaman web berisi gambar
+  - Tautan aneh seperti "javascript:" atau "data:" ditolak sistem
+
+Tentang Google Drive:
+  Tautan Google Drive biasa (drive.google.com/file/d/.../view) BUKAN
+  tautan gambar langsung dan tidak akan tampil. Format yang kadang
+  berhasil:
+       https://drive.google.com/uc?export=view&id=ID_FILE
+  (ID_FILE ada di antara "/d/" dan "/view" pada tautan biasa).
+  Folder/berkas harus diatur "Siapa saja yang memiliki link". Google
+  bisa membatasi tampilan ini sewaktu-waktu, jadi untuk foto penting
+  lebih aman memakai CARA A atau layanan hosting gambar.
+
+
+---------------------------------------------------------------------
+ MENGISI BANYAK FOTO (ALBUM GALERI)
+---------------------------------------------------------------------
+Di form album, tekan "+ Tambah Foto" untuk setiap foto. Foto pertama
+otomatis menjadi sampul album. Campuran path lokal dan URL eksternal
+boleh dalam satu album.
+
+
+---------------------------------------------------------------------
+ MASALAH UMUM
+---------------------------------------------------------------------
+ Gambar tidak muncul (lokal)
+   - Cek ejaan nama file dan huruf besar/kecil (di server Linux,
+     "Foto.JPG" berbeda dengan "foto.jpg").
+   - Pastikan file ada di public/gambar/... dan path diawali /gambar/
+   - Setelah online: pastikan sudah commit + deploy ulang.
+
+ Gambar tidak muncul (URL eksternal)
+   - Buka URL itu langsung di tab baru. Harus menampilkan gambar saja.
+   - Pastikan gambar tidak diatur privat.
+
+ Muncul pesan "URL gambar tidak valid"
+   - Periksa awalan (/gambar/ atau https://) dan ekstensi file.
+=====================================================================
+

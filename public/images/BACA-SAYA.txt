@@ -1,0 +1,20 @@
+=====================================================================
+ PANDUAN PENYIMPANAN LOGO GIBEI UNIMED
+=====================================================================
+
+Letakkan berkas logo resmi GIBEI di folder ini:
+  public/images/logo.png
+  (atau di public/logo.png)
+
+Format yang didukung:
+  - .png (disarankan dengan latar belakang transparan)
+  - .webp
+  - .jpg / .jpeg
+
+Setelah diletakkan dengan nama "logo.png", logo akan langsung tampil otomatis pada:
+  - Header / Navbar situs publik
+  - Sidebar Dashboard Pengurus
+  - Halaman Login Pengurus
+  - Footer situs publik
+=====================================================================
+

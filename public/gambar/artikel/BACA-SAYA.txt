@@ -1,0 +1,4 @@
+Taruh gambar sampul artikel di folder ini.
+Contoh path di dashboard: /gambar/artikel/belajar-saham-pemula.webp
+Panduan lengkap: ../TUTORIAL.txt
+

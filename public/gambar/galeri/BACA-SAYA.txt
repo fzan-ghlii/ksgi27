@@ -1,0 +1,4 @@
+Taruh foto album dokumentasi kegiatan di folder ini.
+Contoh path di dashboard: /gambar/galeri/spm-batch-1-pembukaan.jpg
+Panduan lengkap: ../TUTORIAL.txt
+

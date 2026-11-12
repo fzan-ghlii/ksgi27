@@ -1,0 +1,4 @@
+Taruh foto pengurus di folder ini.
+Contoh path di dashboard: /gambar/pengurus/budi-santoso.jpg
+Panduan lengkap: ../TUTORIAL.txt
+

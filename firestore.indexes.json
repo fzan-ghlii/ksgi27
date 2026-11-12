@@ -1,0 +1,23 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "board_members",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "period_id", "order": "ASCENDING" },
+        { "fieldPath": "division_id", "order": "ASCENDING" },
+        { "fieldPath": "order_index", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "activation_invites",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
+
