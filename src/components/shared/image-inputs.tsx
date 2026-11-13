@@ -5,13 +5,13 @@ import { Plus, Trash2, ImageOff, Upload, Loader2, Sparkles, Link as LinkIcon } f
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { isValidImageRef } from '@/lib/utils/image-ref';
-import { convertImageToWebP } from '@/lib/utils/image-converter';
+import { uploadWebpImage } from '@/lib/utils/image-converter';
 import { toast } from 'sonner';
 
 /** Pratinjau kecil; menampilkan placeholder bila gambar gagal dimuat. */
 export function ImagePreview({ src, className = 'h-16 w-16' }: { src: string; className?: string }) {
-  const [failed, setFailed] = React.useState(false);
-  React.useEffect(() => setFailed(false), [src]);
+  const [failedSrc, setFailedSrc] = React.useState<string | null>(null);
+  const failed = failedSrc === src;
   const valid = isValidImageRef(src);
 
   if (!src || !valid || failed) {
@@ -24,12 +24,12 @@ export function ImagePreview({ src, className = 'h-16 w-16' }: { src: string; cl
       </div>
     );
   }
-  // eslint-disable-next-line @next/next/no-img-element
   return (
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
       alt="Pratinjau"
-      onError={() => setFailed(true)}
+      onError={() => setFailedSrc(src)}
       className={`${className} shrink-0 rounded-lg border border-line object-cover bg-white`}
     />
   );
@@ -44,12 +44,14 @@ export function ImageUrlInput({
   onChange,
   placeholder = 'Unggah berkas foto atau ketik URL https://...',
   disabled,
+  activationToken,
 }: {
   id?: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  activationToken?: string;
 }) {
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = React.useState(false);
@@ -63,27 +65,11 @@ export function ImageUrlInput({
       setUploading(true);
       toast.info('Mengonversi gambar PNG/JPG ke WebP...');
 
-      // 1. Validasi & Auto convert ke WebP client-side
-      const converted = await convertImageToWebP(file);
-
-      // 2. Simpan ke database melalui API
-      const res = await fetch('/api/images', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: converted.file.name,
-          base64: converted.base64,
-          size: converted.webpSize,
-          original_size: converted.originalSize,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Gagal menyimpan gambar ke database.');
-      }
-
-      onChange(data.url);
+      const { url, converted } = await uploadWebpImage(
+        file,
+        activationToken ? { activationToken } : undefined
+      );
+      onChange(url);
       const savedPercent = Math.round(
         ((converted.originalSize - converted.webpSize) / converted.originalSize) * 100
       );
@@ -210,21 +196,8 @@ export function ImageListInput({
 
       const newUrls: string[] = [];
       for (const file of files) {
-        const converted = await convertImageToWebP(file);
-        const res = await fetch('/api/images', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: converted.file.name,
-            base64: converted.base64,
-            size: converted.webpSize,
-            original_size: converted.originalSize,
-          }),
-        });
-        const data = await res.json();
-        if (res.ok && data.url) {
-          newUrls.push(data.url);
-        }
+        const { url } = await uploadWebpImage(file);
+        if (url) newUrls.push(url);
       }
 
       // Gabungkan dengan nilai yang ada (menghapus item kosong bila perlu)

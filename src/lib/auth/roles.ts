@@ -1,19 +1,11 @@
 import { Role, DivisionCode } from '@/types';
 
-export const ROLE_HIERARCHY: Record<Role, number> = {
+const ROLE_HIERARCHY: Record<Role, number> = {
   public: 0,
   member: 1,
   admin_kadiv: 2,
   master_presidium: 3,
   creator: 4,
-};
-
-export const ROLE_LABELS: Record<Role, string> = {
-  public: 'Publik',
-  member: 'Anggota Pengurus',
-  admin_kadiv: 'Kepala Divisi',
-  master_presidium: 'Presidium',
-  creator: 'Presidium',
 };
 
 export function hasMinRole(userRole: Role | undefined | null, requiredRole: Role): boolean {
@@ -68,18 +60,5 @@ export function getAllowedInviteRoles(
     allowed.push('member');
   }
   return allowed;
-}
-
-export function canManageDivision(
-  actorRole: Role | undefined | null,
-  actorDivisionCode: DivisionCode | undefined | null,
-  targetDivisionCode: DivisionCode
-): boolean {
-  if (!actorRole) return false;
-  if (actorRole === 'creator' || actorRole === 'master_presidium') return true;
-  if (actorRole === 'admin_kadiv') {
-    return actorDivisionCode === targetDivisionCode;
-  }
-  return false;
 }
 

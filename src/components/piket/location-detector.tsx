@@ -89,9 +89,11 @@ export function LocationDetector({
 
   // Deteksi lokasi otomatis saat pertama kali membuka form absensi
   React.useEffect(() => {
-    if (!location && !error && !disabled) {
+    if (location || error || disabled) return;
+    const id = window.setTimeout(() => {
       detectLocation();
-    }
+    }, 0);
+    return () => window.clearTimeout(id);
     // Hanya dijalankan saat mount awal
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

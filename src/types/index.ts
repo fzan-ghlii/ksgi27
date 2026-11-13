@@ -334,11 +334,57 @@ export interface AuditLog {
   target_label?: string;
   target_type?: string;
   summary: string;
-  detail?: any;
+  detail?: unknown;
   timestamp: string;
   created_at?: string;
 }
 
 export type AuditAction = AuditLog['action'];
 export type AuditLogEntry = AuditLog;
+
+// ------------------------------------------------------------------ Prestasi Organisasi
+
+export interface Achievement {
+  id: string;
+  title: string;
+  level: string;
+  year: number;
+  organizer: string;
+  category?: string;
+  description?: string;
+  image_url?: string;
+  created_by: string;
+  created_by_name?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ------------------------------------------------------------------ Pelaporan Kegiatan
+
+export type EventAttendanceProofType = 'PDF' | 'LINK';
+export type EventReportStatus = 'SUBMITTED' | 'APPROVED' | 'REVISION_NEEDED';
+
+export interface EventReport {
+  id: string;
+  event_id: string;
+  division_code: DivisionCode;
+  event_title: string;
+  event_date: string;
+  participant_count: number;
+  location: string;
+  attendance_proof_type: EventAttendanceProofType;
+  attendance_proof_url: string;
+  attendance_proof_name?: string;
+  notes?: string;
+  status: EventReportStatus;
+  submitted_by: string;
+  submitted_by_name: string;
+  submitted_by_position?: string;
+  submitted_at: string;
+  reviewed_by?: string | null;
+  reviewed_by_name?: string | null;
+  reviewed_at?: string | null;
+  review_note?: string | null;
+  updated_at: string;
+}
 

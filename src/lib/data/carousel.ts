@@ -1,16 +1,15 @@
 import 'server-only';
-import { revalidatePath } from 'next/cache';
 import { adminDb } from '@/lib/firebase/admin';
 import type { HeroCarouselConfig, UserProfile } from '@/types';
-import { isPresidiumUp } from '@/lib/auth/permissions';
+import { canManageHeroCarousel } from '@/lib/auth/permissions';
 import { HeroCarouselUpdateInput } from '@/lib/schemas/carousel';
 import { forbidden } from '@/lib/errors';
 import { buildAudit } from '@/lib/data/audit';
-import { invalidateHeroCarouselCache } from '@/lib/data/public';
+import { invalidatePublicCache, revalidatePublicPaths } from '@/lib/data/public';
 
 const docRef = () => adminDb.collection('site_settings').doc('hero_carousel');
 
-export const DEFAULT_HERO_CAROUSEL_CONFIG: HeroCarouselConfig = {
+const DEFAULT_HERO_CAROUSEL_CONFIG: HeroCarouselConfig = {
   slides: [],
   autoplay_seconds: 6,
   blur_level: 'medium',
@@ -46,7 +45,7 @@ export async function updateHeroCarouselConfig(
   actor: UserProfile,
   input: HeroCarouselUpdateInput
 ): Promise<HeroCarouselConfig> {
-  if (!isPresidiumUp(actor)) {
+  if (!canManageHeroCarousel(actor)) {
     throw forbidden('Hanya Presidium yang dapat mengatur carousel hero beranda.');
   }
 
@@ -72,8 +71,8 @@ export async function updateHeroCarouselConfig(
   batch.set(audit.ref, audit.data);
   await batch.commit();
 
-  invalidateHeroCarouselCache();
-  revalidatePath('/');
+  invalidatePublicCache('carousel');
+  revalidatePublicPaths(['/']);
 
   return nextConfig;
 }

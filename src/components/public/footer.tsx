@@ -133,7 +133,7 @@ export function Footer() {
         <div className="mt-12 pt-6 border-t border-line flex flex-col sm:flex-row items-center justify-between text-xs text-ink-muted gap-3">
           <p>© 2026 Galeri Investasi BEI Universitas Negeri Medan. Hak Cipta Dilindungi.</p>
           <div className="flex items-center gap-4">
-            <Link href="/tentang" className="hover:text-cerulean-dark">Visi & Misi</Link>
+            <Link href="/sejarah#visi-misi" className="hover:text-cerulean-dark">Visi &amp; Misi</Link>
             <span>•</span>
             <Link href="/kontak" className="hover:text-cerulean-dark">Peta Lokasi</Link>
             <span>•</span>

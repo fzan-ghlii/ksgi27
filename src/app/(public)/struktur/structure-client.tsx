@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { BoardMember, DivisionCode, Period } from '@/types';
+import { BoardMember, Period } from '@/types';
 import { OFFICIAL_DIVISIONS } from '@/lib/constants/divisions';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -158,7 +158,7 @@ export function StructureClient({
 
                 {member.bio && (
                   <p className="text-[11px] text-ink-muted mt-2 line-clamp-2 leading-relaxed">
-                    "{member.bio}"
+                    &ldquo;{member.bio}&rdquo;
                   </p>
                 )}
 

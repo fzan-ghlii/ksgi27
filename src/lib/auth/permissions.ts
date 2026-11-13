@@ -167,6 +167,18 @@ export interface PiketActor extends Actor {
   position_title?: string | null;
 }
 
+function hasDivisionLeadTitle(positionTitle?: string | null): boolean {
+  const pos = (positionTitle || '').toLowerCase();
+  return (
+    pos.includes('kadiv') ||
+    pos.includes('kepala divisi') ||
+    pos.includes('wakadiv') ||
+    pos.includes('wakil kepala') ||
+    pos.includes('wakil ketua') ||
+    pos.includes('wakil divisi')
+  );
+}
+
 /**
  * Mengatur jadwal piket, lokasi galeri, dan verifikasi laporan hasil absensi:
  * - Kadiv Galeri (role admin_kadiv & division GALERI)
@@ -177,16 +189,41 @@ export function canManagePiket(a: PiketActor): boolean {
   if (a.role === 'creator') return true;
   if (a.division_code !== 'GALERI') return false;
   if (a.role === 'admin_kadiv') return true;
+  return hasDivisionLeadTitle(a.position_title);
+}
 
-  const pos = (a.position_title || '').toLowerCase();
-  return (
-    pos.includes('kadiv') ||
-    pos.includes('kepala divisi') ||
-    pos.includes('wakadiv') ||
-    pos.includes('wakil kepala') ||
-    pos.includes('wakil ketua') ||
-    pos.includes('wakil divisi')
-  );
+// ---------------------------------------------------------------- Pelaporan Kegiatan & Prestasi
+
+/** Akses halaman manajemen Event & SPM + pelaporan (Presidium, Creator, Kadiv, Wakadiv). */
+export function canAccessEventDashboard(a: PiketActor): boolean {
+  return isPresidiumUp(a) || a.role === 'admin_kadiv' || hasDivisionLeadTitle(a.position_title);
+}
+
+/** Menandai kegiatan selesai (COMPLETED) & mengirim pelaporan kegiatan ke Presidium. */
+export function canMarkEventCompleted(a: PiketActor, eventDivision?: DivisionCode | null): boolean {
+  if (isPresidiumUp(a)) return true;
+  if (a.role === 'admin_kadiv' || hasDivisionLeadTitle(a.position_title)) {
+    return !eventDivision || a.division_code === eventDivision;
+  }
+  return false;
+}
+
+export function canSubmitEventReport(a: PiketActor, eventDivision?: DivisionCode | null): boolean {
+  return canMarkEventCompleted(a, eventDivision);
+}
+
+export function canViewEventReport(a: PiketActor, eventDivision?: DivisionCode | null): boolean {
+  return canMarkEventCompleted(a, eventDivision);
+}
+
+/** Verifikasi laporan kegiatan yang diajukan Kadiv/Wakadiv (Presidium & Creator). */
+export function canReviewEventReport(a: Actor): boolean {
+  return isPresidiumUp(a);
+}
+
+/** CRUD Prestasi GIBEI UNIMED (khusus Presidium & Creator). */
+export function canManageAchievements(a: Actor): boolean {
+  return isPresidiumUp(a);
 }
 
 /** Presidium bertindak sebagai pengawas seluruh pelaksanaan dan laporan piket. */

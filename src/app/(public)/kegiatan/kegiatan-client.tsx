@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { EventAndSpm } from '@/types';
 import { EventCard } from '@/components/public/event-card';
-import { Sparkles, Calendar, BookOpen, Award, Layers, Search } from 'lucide-react';
+import { Sparkles, BookOpen, Award, Search } from 'lucide-react';
 
 interface KegiatanClientProps {
   events: EventAndSpm[];

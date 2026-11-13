@@ -31,31 +31,67 @@ export function BoardModal({
   /** null = tambah baru */
   member: BoardMember | null;
 }) {
-  const router = useRouter();
   const editing = !!member;
   const isStructureAdmin = canManageBoardStructure(user);
-
-  const [division, setDivision] = React.useState<DivisionCode>(defaultDivision);
-  const [fullName, setFullName] = React.useState('');
-  const [position, setPosition] = React.useState('');
-  const [photo, setPhoto] = React.useState('');
-  const [bio, setBio] = React.useState('');
-  const [linkedin, setLinkedin] = React.useState('');
-  const [instagram, setInstagram] = React.useState('');
-  const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [busy, setBusy] = React.useState(false);
 
-  React.useEffect(() => {
-    if (!open) return;
-    setDivision(member?.division_code ?? defaultDivision);
-    setFullName(member?.full_name ?? '');
-    setPosition(member?.position_title ?? '');
-    setPhoto(member?.photo_url ?? '');
-    setBio(member?.bio ?? '');
-    setLinkedin(member?.social_links?.linkedin ?? '');
-    setInstagram(member?.social_links?.instagram ?? '');
-    setErrors({});
-  }, [open, member, defaultDivision]);
+  return (
+    <Modal
+      open={open}
+      onOpenChange={(o) => !busy && onOpenChange(o)}
+      title={editing ? 'Edit Data Pengurus' : 'Tambah Pengurus'}
+      description={
+        editing
+          ? isStructureAdmin
+            ? 'Perubahan nama dan jabatan ikut memperbarui profil akun pengurus bila ada.'
+            : 'Anda dapat mengubah jabatan, foto, dan tautan media sosial. Nama hanya dapat diubah Presidium.'
+          : 'Menambah pengurus secara manual (tanpa akun). Pengurus yang aktivasi lewat link otomatis masuk struktur.'
+      }
+    >
+      {open ? (
+        <BoardForm
+          key={member?.id ?? `new-${defaultDivision}`}
+          periodId={periodId}
+          defaultDivision={defaultDivision}
+          member={member}
+          isStructureAdmin={isStructureAdmin}
+          busy={busy}
+          onBusyChange={setBusy}
+          onClose={() => onOpenChange(false)}
+        />
+      ) : null}
+    </Modal>
+  );
+}
+
+function BoardForm({
+  periodId,
+  defaultDivision,
+  member,
+  isStructureAdmin,
+  busy,
+  onBusyChange,
+  onClose,
+}: {
+  periodId: string;
+  defaultDivision: DivisionCode;
+  member: BoardMember | null;
+  isStructureAdmin: boolean;
+  busy: boolean;
+  onBusyChange: (busy: boolean) => void;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const editing = !!member;
+
+  const [division, setDivision] = React.useState<DivisionCode>(() => member?.division_code ?? defaultDivision);
+  const [fullName, setFullName] = React.useState(() => member?.full_name ?? '');
+  const [position, setPosition] = React.useState(() => member?.position_title ?? '');
+  const [photo, setPhoto] = React.useState(() => member?.photo_url ?? '');
+  const [bio, setBio] = React.useState(() => member?.bio ?? '');
+  const [linkedin, setLinkedin] = React.useState(() => member?.social_links?.linkedin ?? '');
+  const [instagram, setInstagram] = React.useState(() => member?.social_links?.instagram ?? '');
+  const [errors, setErrors] = React.useState<Record<string, string>>({});
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,7 +113,7 @@ export function BoardModal({
     setErrors({});
 
     try {
-      setBusy(true);
+      onBusyChange(true);
       if (editing && member) {
         await apiFetch(`/api/board/${member.id}`, { method: 'PATCH', body: parsed.data });
         toast.success('Data pengurus diperbarui.');
@@ -85,28 +121,16 @@ export function BoardModal({
         await apiFetch('/api/board', { method: 'POST', body: parsed.data });
         toast.success('Pengurus ditambahkan ke struktur.');
       }
-      onOpenChange(false);
+      onClose();
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Gagal menyimpan data pengurus.');
     } finally {
-      setBusy(false);
+      onBusyChange(false);
     }
   };
 
   return (
-    <Modal
-      open={open}
-      onOpenChange={(o) => !busy && onOpenChange(o)}
-      title={editing ? 'Edit Data Pengurus' : 'Tambah Pengurus'}
-      description={
-        editing
-          ? isStructureAdmin
-            ? 'Perubahan nama dan jabatan ikut memperbarui profil akun pengurus bila ada.'
-            : 'Anda dapat mengubah jabatan, foto, dan tautan media sosial. Nama hanya dapat diubah Presidium.'
-          : 'Menambah pengurus secara manual (tanpa akun). Pengurus yang aktivasi lewat link otomatis masuk struktur.'
-      }
-    >
       <form onSubmit={submit} className="space-y-4" noValidate>
         {!editing && (
           <Field label="Divisi" htmlFor="division" required>
@@ -145,7 +169,7 @@ export function BoardModal({
         </div>
 
         <div className="flex justify-end gap-2.5 pt-2">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
             Batal
           </Button>
           <Button type="submit" variant="gold" disabled={busy}>
@@ -154,7 +178,6 @@ export function BoardModal({
           </Button>
         </div>
       </form>
-    </Modal>
   );
 }
 

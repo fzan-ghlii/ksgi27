@@ -1,6 +1,6 @@
 import { getInviteByToken } from '@/lib/data/invites';
 import { ActivationClient } from './activation-client';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';

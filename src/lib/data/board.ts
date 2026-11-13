@@ -6,12 +6,15 @@ import { canEditBoardMember, canManageBoardStructure } from '@/lib/auth/permissi
 import { BoardAddInput, BoardUpdateInput } from '@/lib/schemas/content';
 import { badRequest, forbidden, notFound } from '@/lib/errors';
 import { buildAudit } from '@/lib/data/audit';
+import { invalidatePublicCache, revalidatePublicPaths } from '@/lib/data/public';
+
+function invalidateBoardCaches(withDivisions = false) {
+  invalidatePublicCache('board');
+  if (withDivisions) invalidatePublicCache('periods');
+  revalidatePublicPaths(['/', '/struktur']);
+}
 
 const MANAGE_ERR = 'Hanya Presidium dan Creator yang dapat mengubah struktur pengurus.';
-
-export function isMemberActive(m: BoardMember): boolean {
-  return m.is_active !== false;
-}
 
 function sortMembers(list: BoardMember[]): BoardMember[] {
   return list.sort(
@@ -77,6 +80,7 @@ export async function addBoardMember(actor: UserProfile, input: BoardAddInput): 
   });
   batch.set(audit.ref, audit.data);
   await batch.commit();
+  invalidateBoardCaches();
   return member;
 }
 
@@ -138,6 +142,7 @@ export async function updateBoardMember(
   });
   batch.set(audit.ref, audit.data);
   await batch.commit();
+  invalidateBoardCaches();
 }
 
 /** Geser urutan tampil satu langkah dalam divisi yang sama. */
@@ -178,6 +183,7 @@ export async function moveBoardMember(
     }
   });
   await batch.commit();
+  invalidateBoardCaches();
 }
 
 export async function deleteBoardMember(actor: UserProfile, id: string): Promise<void> {
@@ -205,6 +211,7 @@ export async function deleteBoardMember(actor: UserProfile, id: string): Promise
     });
     tx.set(audit.ref, audit.data);
   });
+  invalidateBoardCaches(true);
 }
 
 /**
@@ -283,5 +290,6 @@ export async function setDivisionHead(
       adminAuth.setCustomUserClaims(c.uid, { role: c.role, division_code: c.division_code }).catch(() => undefined)
     )
   );
+  invalidateBoardCaches(true);
 }
 

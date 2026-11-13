@@ -17,6 +17,11 @@ import {
   canViewAllPiketReports,
   canSubmitPiketAttendance,
   canManageHeroCarousel,
+  canAccessEventDashboard,
+  canMarkEventCompleted,
+  canSubmitEventReport,
+  canReviewEventReport,
+  canManageAchievements,
   type Actor,
   type PiketActor,
   type ArticleRef,
@@ -176,6 +181,41 @@ describe('Carousel Hero Beranda', () => {
     expect(canManageHeroCarousel(kadivGaleri)).toBe(false);
     expect(canManageHeroCarousel(kadivHrd)).toBe(false);
     expect(canManageHeroCarousel(member)).toBe(false);
+  });
+});
+
+describe('Pelaporan Kegiatan & Prestasi', () => {
+  const wakadivEdu: PiketActor = {
+    uid: 'w1',
+    role: 'member',
+    division_code: 'EDUKASI',
+    position_title: 'Wakil Kepala Divisi Edukasi',
+  };
+
+  it('Kadiv, Wakadiv divisi terkait, & Presidium boleh tandai selesai & lapor kegiatan', () => {
+    expect(canAccessEventDashboard(wakadivEdu)).toBe(true);
+    expect(canAccessEventDashboard(member)).toBe(false);
+
+    expect(canMarkEventCompleted(wakadivEdu, 'EDUKASI')).toBe(true);
+    expect(canMarkEventCompleted(wakadivEdu, 'MEDIA')).toBe(false);
+    expect(canMarkEventCompleted(kadivEdu, 'EDUKASI')).toBe(true);
+    expect(canMarkEventCompleted(presidium, 'MEDIA')).toBe(true);
+    expect(canMarkEventCompleted(member, 'EDUKASI')).toBe(false);
+
+    expect(canSubmitEventReport(wakadivEdu, 'EDUKASI')).toBe(true);
+    expect(canSubmitEventReport(member, 'EDUKASI')).toBe(false);
+    expect(canReviewEventReport(presidium)).toBe(true);
+    expect(canReviewEventReport(creator)).toBe(true);
+    expect(canReviewEventReport(kadivEdu)).toBe(false);
+    expect(canReviewEventReport(wakadivEdu)).toBe(false);
+  });
+
+  it('hanya Presidium & Creator yang boleh CRUD prestasi', () => {
+    expect(canManageAchievements(presidium)).toBe(true);
+    expect(canManageAchievements(creator)).toBe(true);
+    expect(canManageAchievements(kadivEdu)).toBe(false);
+    expect(canManageAchievements(wakadivEdu)).toBe(false);
+    expect(canManageAchievements(member)).toBe(false);
   });
 });
 

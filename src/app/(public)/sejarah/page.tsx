@@ -4,21 +4,22 @@ import {
   Target,
   Compass,
   CheckCircle2,
-  TrendingUp,
-  Shield,
-  Layers,
-  Award,
+  Type,
+  Trees,
+  Users,
+  Star,
   ArrowRight,
   Sparkles,
   BookOpen,
 } from 'lucide-react';
 import { GibeiLogo } from '@/components/shared/logo';
 import { Button } from '@/components/ui/button';
+import { ORG_VISION, ORG_MISSIONS, ORG_MOTTO, ORG_MOTTO_MEANING } from '@/lib/constants/identity';
 
 export const metadata = {
   title: 'Sejarah, Makna Logo, Visi & Misi | GIBEI UNIMED',
   description:
-    'Historikal perjalanan Galeri Investasi BEI Universitas Negeri Medan, filosofi dan makna logo, serta Visi dan Misi tetap organisasi.',
+    'Historikal perjalanan Galeri Investasi BEI Universitas Negeri Medan, filosofi dan makna logo, serta Visi, Misi, dan Motto organisasi.',
 };
 
 export default function SejarahGibeiPage() {
@@ -36,7 +37,7 @@ export default function SejarahGibeiPage() {
               Sejarah, Makna Logo, & Visi Misi GIBEI
             </h1>
             <p className="text-base sm:text-lg text-ink-muted leading-relaxed">
-              Mengenal rekam jejak berdirinya Galeri Investasi Bursa Efek Indonesia di Universitas Negeri Medan, nilai-nilai filosofis yang terkandung dalam identitas visual kami, serta visi misi tetap yang memandu langkah organisasi.
+              Mengenal rekam jejak berdirinya Galeri Investasi Bursa Efek Indonesia di Universitas Negeri Medan, nilai-nilai filosofis yang terkandung dalam identitas visual kami, serta visi, misi, dan motto yang memandu langkah organisasi.
             </p>
           </div>
 
@@ -115,62 +116,62 @@ export default function SejarahGibeiPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Makna 1: Grafik Naik */}
+            {/* Makna 1: Tulisan Awal GIBEI UNIMED */}
             <div className="bento-card p-6 sm:p-8 bg-white border border-line space-y-3 flex items-start gap-4">
               <div className="h-12 w-12 rounded-2xl bg-cerulean-light text-cerulean shrink-0 flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-cerulean" />
+                <Type className="h-6 w-6 text-cerulean" />
               </div>
               <div className="space-y-1.5">
                 <h3 className="font-bold text-base text-ink">
-                  Grafik Pertumbuhan & Panah Naik (Ascending Growth)
+                  1. Tulisan Awal &ldquo;GIBEI UNIMED&rdquo;
                 </h3>
                 <p className="text-xs sm:text-sm text-ink-muted leading-relaxed">
-                  Melambangkan akselerasi pertumbuhan investasi dan literasi finansial yang terus menanjak secara konsisten. Bentuk panah ke atas mencerminkan optimisme, progresivitas, dan keberanian mahasiswa untuk berkembang menjadi investor yang cerdas dan mandiri.
+                  Pada tulisan awal GIBEI UNIMED, melambangkan unsur awal dan utama sebagai tempat atau wadah pembentukan kepengurusan Galeri Investasi Bursa Efek Indonesia Fakultas Ekonomi dan Bisnis UNIMED.
                 </p>
               </div>
             </div>
 
-            {/* Makna 2: Warna Biru Cerulean & Cyan */}
-            <div className="bento-card p-6 sm:p-8 bg-white border border-line space-y-3 flex items-start gap-4">
-              <div className="h-12 w-12 rounded-2xl bg-cyan-light text-cyan shrink-0 flex items-center justify-center">
-                <Shield className="h-6 w-6 text-cyan" />
-              </div>
-              <div className="space-y-1.5">
-                <h3 className="font-bold text-base text-ink">
-                  Warna Biru Cerulean & Cyan (Integritas & Kepercayaan)
-                </h3>
-                <p className="text-xs sm:text-sm text-ink-muted leading-relaxed">
-                  Warna biru melambangkan integritas tinggi, profesionalisme, dan transparansi yang menjadi pilar utama dalam pasar modal. Gradasi ke arah cyan mencerminkan kejernihan analitis, adaptabilitas terhadap teknologi, serta kedalaman pemikiran akademis.
-                </p>
-              </div>
-            </div>
-
-            {/* Makna 3: Fondasi Tripartit */}
+            {/* Makna 2: Gambar Pohon yang Melambangkan IDX */}
             <div className="bento-card p-6 sm:p-8 bg-white border border-line space-y-3 flex items-start gap-4">
               <div className="h-12 w-12 rounded-2xl bg-emerald-50 text-emerald-600 shrink-0 flex items-center justify-center">
-                <Layers className="h-6 w-6 text-emerald-600" />
+                <Trees className="h-6 w-6 text-emerald-600" />
               </div>
               <div className="space-y-1.5">
                 <h3 className="font-bold text-base text-ink">
-                  Pilar Sinergi Tiga Pilar (Tripartit)
+                  2. Gambar Pohon yang Melambangkan IDX
                 </h3>
                 <p className="text-xs sm:text-sm text-ink-muted leading-relaxed">
-                  Mencerminkan fondasi kokoh yang terbangun dari kerja sama harmonis tiga pilar institusi: Universitas Negeri Medan sebagai wadah akademisi, Bursa Efek Indonesia sebagai pengatur pasar, dan Perusahaan Sekuritas sebagai praktisi industri.
+                  Menggambarkan peran IDX (Bursa Efek Indonesia) dalam mengarahkan, membimbing, serta membantu berdirinya GIBEI UNIMED itu sendiri.
                 </p>
               </div>
             </div>
 
-            {/* Makna 4: Lingkaran Kontinuitas */}
+            {/* Makna 3: Lima (5) Simbol Tangan */}
             <div className="bento-card p-6 sm:p-8 bg-white border border-line space-y-3 flex items-start gap-4">
-              <div className="h-12 w-12 rounded-2xl bg-gold-light text-gold shrink-0 flex items-center justify-center">
-                <Award className="h-6 w-6 text-[#7a6026]" />
+              <div className="h-12 w-12 rounded-2xl bg-cyan-light text-cyan shrink-0 flex items-center justify-center">
+                <Users className="h-6 w-6 text-cyan" />
               </div>
               <div className="space-y-1.5">
                 <h3 className="font-bold text-base text-ink">
-                  Dinamika Melingkar & Kontinuitas Regenerasi
+                  3. Lima (5) Simbol Tangan
                 </h3>
                 <p className="text-xs sm:text-sm text-ink-muted leading-relaxed">
-                  Lengkungan yang menyatu melambangkan inklusivitas tanpa batas—merangkul seluruh civitas akademika tanpa memandang disiplin ilmu—serta regenerasi kepengurusan yang berkelanjutan untuk terus mengabdi bagi kemajuan literasi finansial bangsa.
+                  Melambangkan kerja sama antar setiap divisi yang saling bahu-membahu dalam menjalankan berbagai tugas masing-masing untuk mengajak dan membimbing mahasiswa serta masyarakat umum terjun ke dalam dunia investasi saham.
+                </p>
+              </div>
+            </div>
+
+            {/* Makna 4: Bintang & Lingkaran */}
+            <div className="bento-card p-6 sm:p-8 bg-white border border-line space-y-3 flex items-start gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-gold-light text-gold shrink-0 flex items-center justify-center">
+                <Star className="h-6 w-6 text-[#7a6026]" />
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="font-bold text-base text-ink">
+                  4. Bintang &amp; Lingkaran
+                </h3>
+                <p className="text-xs sm:text-sm text-ink-muted leading-relaxed">
+                  Simbol bintang diambil sebagai bentuk apresiasi kepada beberapa dosen yang pada awalnya ingin membentuk GIBEI meskipun sempat belum terwujud dan baru terwujud di kemudian hari. Adapun lingkaran berkaitan dengan batas ruang lingkup tugas dari kepengurusan.
                 </p>
               </div>
             </div>
@@ -178,74 +179,65 @@ export default function SejarahGibeiPage() {
         </div>
 
         {/* ========================================================
-            BAGIAN 3: VISI DAN MISI TETAP GIBEI UNIMED
+            BAGIAN 3: VISI, MISI, DAN MOTTO GIBEI UNIMED
         ======================================================== */}
-        <div className="space-y-8">
+        <div id="visi-misi" className="space-y-8 scroll-mt-24">
           <div>
             <div className="inline-flex items-center gap-1.5 text-xs font-bold text-cerulean-dark uppercase tracking-wider">
               <Target className="h-4 w-4" />
               Bagian III
             </div>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-ink mt-1">
-              Visi & Misi Tetap GIBEI UNIMED
+              Visi, Misi &amp; Motto GIBEI UNIMED
             </h2>
             <p className="text-sm sm:text-base text-ink-muted mt-2 max-w-3xl">
-              Visi dan Misi ini bersifat tetap (konstan) pada tingkat organisasi sebagai kompas utama bagi seluruh kepengurusan dalam menjalankan setiap program kerja.
+              Kompas utama dan landasan semangat seluruh kepengurusan GIBEI UNIMED dalam menjalankan setiap program kerja.
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Visi Tetap */}
-            <div className="bento-card p-6 sm:p-8 bg-gradient-to-br from-white via-cerulean-light/30 to-cyan-light/20 border border-cerulean/30 space-y-4">
-              <div className="h-12 w-12 rounded-2xl bg-cerulean text-white flex items-center justify-center shadow-md shadow-cerulean/30">
-                <Target className="h-6 w-6" />
+            {/* Visi & Motto */}
+            <div className="flex flex-col gap-6">
+              <div className="bento-card p-6 sm:p-8 bg-gradient-to-br from-white via-cerulean-light/30 to-cyan-light/20 border border-cerulean/30 space-y-4 flex-1">
+                <div className="h-12 w-12 rounded-2xl bg-cerulean text-white flex items-center justify-center shadow-md shadow-cerulean/30">
+                  <Target className="h-6 w-6" />
+                </div>
+                <span className="text-xs font-extrabold uppercase text-cerulean-dark tracking-wider block">
+                  Visi Organisasi
+                </span>
+                <p className="text-base sm:text-lg text-ink font-bold leading-relaxed">
+                  &ldquo;{ORG_VISION}&rdquo;
+                </p>
               </div>
-              <span className="text-xs font-extrabold uppercase text-cerulean-dark tracking-wider">
-                Visi Tetap Organisasi
-              </span>
-              <p className="text-base sm:text-lg text-ink font-bold leading-relaxed">
-                "Menjadi Galeri Investasi Bursa Efek Indonesia terdepan, unggul, dan berdaya saing nasional dalam memajukan literasi serta inklusi pasar modal di lingkungan civitas akademika Universitas Negeri Medan dan masyarakat umum, berlandaskan integritas, profesionalisme, dan inovasi berkelanjutan."
-              </p>
+
+              <div className="bento-card p-6 bg-gradient-to-br from-gold-light/40 via-white to-surface border border-gold/40 space-y-2">
+                <span className="text-xs font-extrabold uppercase text-[#7a6026] tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-gold" />
+                  Motto Organisasi
+                </span>
+                <p className="text-xl sm:text-2xl font-black italic text-ink tracking-tight">
+                  &ldquo;{ORG_MOTTO}&rdquo;
+                </p>
+                <p className="text-xs font-semibold text-[#7a6026]">
+                  {ORG_MOTTO_MEANING}
+                </p>
+              </div>
             </div>
 
-            {/* 5 Misi Tetap */}
+            {/* 4 Misi */}
             <div className="bento-card p-6 sm:p-8 bg-white border border-line lg:col-span-2 space-y-4">
               <div className="flex items-center gap-2 pb-3 border-b border-line">
                 <Compass className="h-5 w-5 text-cerulean" />
                 <span className="text-xs font-extrabold uppercase text-cerulean-dark tracking-wider">
-                  5 Misi Strategis Tetap
+                  Misi Strategis
                 </span>
               </div>
 
               <ul className="space-y-4">
-                {[
-                  {
-                    title: 'Edukasi Pasar Modal Berjenjang',
-                    desc: 'Menyelenggarakan Sekolah Pasar Modal (SPM) berjenjang (Level 1 Pengenalan Investasi, Level 2 Belajar Saham, serta Level Lanjutan Analisis Fundamental & Teknikal) secara berkala, inklusif, dan berkualitas tinggi.',
-                  },
-                  {
-                    title: 'Peningkatan Investor Muda Aktif & RDN',
-                    desc: 'Mendorong pembukaan Rekening Dana Nasabah (RDN) resmi dan membina investor muda di kalangan mahasiswa agar mampu mengambil keputusan investasi yang rasional, etis, dan bertanggung jawab.',
-                  },
-                  {
-                    title: 'Pengembangan Budaya Riset Emiten',
-                    desc: 'Menumbuhkan tradisi penelitian dan analisis pasar modal yang mendalam, independen, dan berintegritas melalui publikasi riset berkala serta kajian valuasi emiten.',
-                  },
-                  {
-                    title: 'Sinergi Strategis Tripartit',
-                    desc: 'Mempererat kemitraan dengan PT Bursa Efek Indonesia (BEI), Perusahaan Sekuritas Mitra, Otoritas Jasa Keuangan (OJK), serta pemangku kepentingan industri keuangan lainnya.',
-                  },
-                  {
-                    title: 'Tata Kelola Berbasis Teknologi Modern',
-                    desc: 'Mengembangkan sistem tata kelola organisasi yang transparan, profesional, akuntabel, dan mengadopsi teknologi digital dalam seluruh lini operasional kepengurusan.',
-                  },
-                ].map((misi, idx) => (
-                  <li key={idx} className="flex items-start gap-3 text-sm">
+                {ORG_MISSIONS.map((misi, idx) => (
+                  <li key={idx} className="flex items-start gap-3 text-sm sm:text-base">
                     <CheckCircle2 className="h-5 w-5 text-cyan shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-ink block font-bold">{misi.title}</strong>
-                      <span className="text-ink-muted text-xs leading-relaxed">{misi.desc}</span>
-                    </div>
+                    <span className="text-ink-muted leading-relaxed">{misi}</span>
                   </li>
                 ))}
               </ul>

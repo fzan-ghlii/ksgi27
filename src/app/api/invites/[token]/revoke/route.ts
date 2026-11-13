@@ -1,25 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth/session';
+import { errorResponse, RouteCtx } from '@/lib/api/route';
+import { badRequest } from '@/lib/errors';
 import { revokeInvite } from '@/lib/data/invites';
 
 export async function POST(
-  req: NextRequest,
-  context: { params: Promise<{ token: string }> }
+  _req: NextRequest,
+  { params }: RouteCtx<{ token: string }>
 ) {
   try {
     const user = await requireUser('admin_kadiv');
-    const { token } = await context.params;
+    const { token } = await params;
 
     if (!token) {
-      return NextResponse.json({ error: 'Token diperlukan' }, { status: 400 });
+      throw badRequest('Token diperlukan.');
     }
 
     await revokeInvite(token, user);
     return NextResponse.json({ success: true, message: 'Tautan berhasil dicabut.' });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Gagal mencabut tautan';
-    const status = msg === 'UNAUTHORIZED' ? 401 : msg === 'FORBIDDEN' ? 403 : 400;
-    return NextResponse.json({ error: msg }, { status });
+  } catch (err) {
+    return errorResponse(err);
   }
 }
 

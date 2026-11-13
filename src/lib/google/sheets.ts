@@ -22,28 +22,52 @@ export interface SheetAppendResult {
 /**
  * Mengecek apakah kredensial Service Account Google Sheets tersedia di environment variables.
  */
-export function isGoogleSheetsConfigured(): boolean {
+function isGoogleSheetsConfigured(): boolean {
   const clientEmail = process.env.GOOGLE_SHEETS_CLIENT_EMAIL;
   const privateKey = process.env.GOOGLE_SHEETS_PRIVATE_KEY;
   return !!(clientEmail && clientEmail.trim() !== '' && privateKey && privateKey.trim() !== '');
 }
 
+let cachedSheets: { credsKey: string; client: ReturnType<typeof google.sheets> } | null = null;
+const checkedHeaderTabs = new Set<string>();
+
+/** Bentuk array 10 kolom standar untuk satu baris peserta di Google Sheet. */
+export function toSheetRow(registrationId: string, participant: ParticipantRow): string[] {
+  return [
+    participant.registered_at,
+    participant.full_name,
+    participant.nim,
+    participant.email,
+    participant.whatsapp,
+    participant.institution,
+    participant.has_rdn ? 'Sudah Ada' : 'Belum Ada',
+    participant.attendance_status || 'Registered',
+    participant.notes || '-',
+    registrationId,
+  ];
+}
+
 /**
- * Mendapatkan client Sheets API v4 yang terautentikasi.
+ * Mendapatkan client Sheets API v4 yang terautentikasi (di-cache per kredensial).
  * Mengembalikan null jika kredensial tidak lengkap / tidak valid.
  */
-export function getGoogleSheetsClient() {
+function getGoogleSheetsClient() {
   if (!isGoogleSheetsConfigured()) {
     return null;
   }
 
   try {
-    const clientEmail = process.env.GOOGLE_SHEETS_CLIENT_EMAIL!;
+    const clientEmail = process.env.GOOGLE_SHEETS_CLIENT_EMAIL!.trim();
     let privateKey = process.env.GOOGLE_SHEETS_PRIVATE_KEY!;
 
     // Normalisasi newline jika tersimpan sebagai string literal "\n"
     if (privateKey.includes('\\n')) {
       privateKey = privateKey.replace(/\\n/g, '\n');
+    }
+
+    const credsKey = `${clientEmail}::${privateKey}`;
+    if (cachedSheets?.credsKey === credsKey) {
+      return cachedSheets.client;
     }
 
     const auth = new google.auth.JWT({
@@ -52,7 +76,9 @@ export function getGoogleSheetsClient() {
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
 
-    return google.sheets({ version: 'v4', auth });
+    const client = google.sheets({ version: 'v4', auth });
+    cachedSheets = { credsKey, client };
+    return client;
   } catch (err) {
     console.warn('[GoogleSheets] Gagal inisialisasi client JWT:', err);
     return null;
@@ -67,6 +93,9 @@ async function ensureSheetHeader(
   spreadsheetId: string,
   tabName: string
 ) {
+  const cacheKey = `${spreadsheetId}::${tabName}`;
+  if (checkedHeaderTabs.has(cacheKey)) return;
+
   try {
     const checkRange = `${tabName}!A1:J1`;
     const res = await sheets.spreadsheets.values.get({
@@ -95,6 +124,7 @@ async function ensureSheetHeader(
         requestBody: { values: [headers] },
       });
     }
+    checkedHeaderTabs.add(cacheKey);
   } catch (err) {
     console.warn(`[GoogleSheets] Warning saat cek/tulis header di ${tabName}:`, err);
   }
@@ -127,18 +157,7 @@ export async function appendParticipantToSheet(params: {
   try {
     await ensureSheetHeader(sheets, spreadsheetId, sheetTabName);
 
-    const row = [
-      participant.registered_at,
-      participant.full_name,
-      participant.nim,
-      participant.email,
-      participant.whatsapp,
-      participant.institution,
-      participant.has_rdn ? 'Sudah Ada' : 'Belum Ada',
-      participant.attendance_status || 'Registered',
-      participant.notes || '-',
-      registrationId,
-    ];
+    const row = toSheetRow(registrationId, participant);
 
     const range = `${sheetTabName}!A:J`;
     const res = await sheets.spreadsheets.values.append({
@@ -260,18 +279,7 @@ export async function batchSyncParticipantsToSheet(params: {
 
     for (const p of participants) {
       if (!existingIds.has(p.registrationId)) {
-        rowsToAppend.push([
-          p.data.registered_at,
-          p.data.full_name,
-          p.data.nim,
-          p.data.email,
-          p.data.whatsapp,
-          p.data.institution,
-          p.data.has_rdn ? 'Sudah Ada' : 'Belum Ada',
-          p.data.attendance_status || 'Registered',
-          p.data.notes || '-',
-          p.registrationId,
-        ]);
+        rowsToAppend.push(toSheetRow(p.registrationId, p.data));
         appendedIds.push(p.registrationId);
       } else {
         // Anggap sudah sync

@@ -1,13 +1,13 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
-import { isPresidiumUp } from '@/lib/auth/permissions';
+import { canManageHeroCarousel } from '@/lib/auth/permissions';
 import { getHeroCarouselConfig } from '@/lib/data/carousel';
 import { CarouselClient } from './carousel-client';
 
 export default async function DashboardCarouselPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
-  if (!isPresidiumUp(user)) {
+  if (!canManageHeroCarousel(user)) {
     redirect('/dashboard');
   }
 

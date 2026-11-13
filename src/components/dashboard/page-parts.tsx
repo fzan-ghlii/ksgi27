@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /** Kepala halaman dashboard: lencana kecil + judul + deskripsi + aksi di kanan. */
 export function PageHeader({
@@ -80,6 +81,50 @@ export function TabBar<T extends string>({
           </button>
         );
       })}
+    </div>
+  );
+}
+
+/** Placeholder pemuatan seragam untuk rute dashboard (list tabel atau grid kartu). */
+export function DashboardLoadingSkeleton({
+  label,
+  variant = 'list',
+}: {
+  label: string;
+  variant?: 'list' | 'grid';
+}) {
+  return (
+    <div className="space-y-6" aria-busy="true" aria-label={label}>
+      <div className="space-y-3 pb-6 border-b border-line">
+        <Skeleton className="h-6 w-40 rounded-full" />
+        <Skeleton className="h-9 w-80 max-w-full" />
+        <Skeleton className="h-4 w-96 max-w-full" />
+      </div>
+      <Skeleton className={variant === 'list' ? 'h-11 w-96 max-w-full rounded-2xl' : 'h-11 w-72 max-w-full rounded-2xl'} />
+      {variant === 'grid' ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="rounded-2xl border border-line bg-white overflow-hidden space-y-3 p-4">
+              <Skeleton className="h-44 w-full rounded-xl" />
+              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="h-3 w-1/2" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-line bg-white p-4 space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4">
+              <Skeleton className="h-12 w-12 rounded-lg" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-72 max-w-full" />
+                <Skeleton className="h-3 w-40" />
+              </div>
+              <Skeleton className="h-6 w-24 rounded-full" />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

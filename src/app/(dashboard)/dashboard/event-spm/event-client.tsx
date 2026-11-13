@@ -3,11 +3,15 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { EventAndSpm, Period, UserProfile } from '@/types';
+import { EventAndSpm, EventReport, Period, UserProfile } from '@/types';
 import { OFFICIAL_DIVISIONS } from '@/lib/constants/divisions';
-import { isPresidiumUp } from '@/lib/auth/permissions';
+import { canManageEvent, canMarkEventCompleted, canViewEventReport } from '@/lib/auth/permissions';
 import { EventModal } from './event-modal';
+import { EventReportModal } from './event-report-modal';
+import { PageHeader, TabBar } from '@/components/dashboard/page-parts';
+import { ConfirmDialog } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
+import { apiFetch } from '@/lib/api-client';
 import { toast } from 'sonner';
 import {
   Calendar,
@@ -18,21 +22,31 @@ import {
   Edit2,
   Trash2,
   FileSpreadsheet,
-  CheckCircle2,
   Clock,
   Sparkles,
   Search,
+  CheckCircle2,
+  ClipboardList,
 } from 'lucide-react';
 
 interface EventClientProps {
   user: UserProfile;
   initialEvents: EventAndSpm[];
   periods: Period[];
+  initialReports?: EventReport[];
 }
 
-export function EventClient({ user, initialEvents, periods }: EventClientProps) {
+export function EventClient({
+  user,
+  initialEvents,
+  periods,
+  initialReports = [],
+}: EventClientProps) {
   const router = useRouter();
   const [events, setEvents] = React.useState<EventAndSpm[]>(initialEvents);
+  const [reportsByEvent, setReportsByEvent] = React.useState<Record<string, EventReport>>(() =>
+    Object.fromEntries(initialReports.map((r) => [r.event_id, r]))
+  );
   const [categoryFilter, setCategoryFilter] = React.useState<'ALL' | 'SPM' | 'EVENT'>('ALL');
   const [statusFilter, setStatusFilter] = React.useState<string>('ALL');
   const [searchQuery, setSearchQuery] = React.useState<string>('');
@@ -40,9 +54,9 @@ export function EventClient({ user, initialEvents, periods }: EventClientProps) 
   const [modalOpen, setModalOpen] = React.useState(false);
   const [editingEvent, setEditingEvent] = React.useState<EventAndSpm | null>(null);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
-
-  const isPresidium = isPresidiumUp(user);
-  const userDivision = user.division_code;
+  const [deleteTarget, setDeleteTarget] = React.useState<{ id: string; title: string } | null>(null);
+  const [completeTarget, setCompleteTarget] = React.useState<EventAndSpm | null>(null);
+  const [reportEvent, setReportEvent] = React.useState<EventAndSpm | null>(null);
 
   // Filter wewenang: Presidium/Creator melihat semua; Kadiv melihat divisinya & SPM jika Edukasi
   const filteredEvents = events.filter((e) => {
@@ -65,17 +79,16 @@ export function EventClient({ user, initialEvents, periods }: EventClientProps) 
     return true;
   });
 
-  const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Apakah Anda yakin ingin menghapus kegiatan "${title}"? Seluruh data pendaftar terkait juga akan dihapus permanen.`)) {
-      return;
-    }
+  const handleDelete = (id: string, title: string) => {
+    setDeleteTarget({ id, title });
+  };
 
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const { id } = deleteTarget;
     try {
       setDeletingId(id);
-      const res = await fetch(`/api/events/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal menghapus kegiatan.');
-
+      await apiFetch(`/api/events/${id}`, { method: 'DELETE' });
       toast.success('Kegiatan berhasil dihapus.');
       setEvents((prev) => prev.filter((e) => e.id !== id));
       router.refresh();
@@ -87,72 +100,57 @@ export function EventClient({ user, initialEvents, periods }: EventClientProps) 
     }
   };
 
+  const confirmMarkCompleted = async () => {
+    if (!completeTarget) return;
+    try {
+      const res = await apiFetch<{ event: EventAndSpm }>(`/api/events/${completeTarget.id}`, {
+        method: 'PATCH',
+        body: { status: 'COMPLETED' },
+      });
+      setEvents((prev) => prev.map((e) => (e.id === res.event.id ? res.event : e)));
+      toast.success('Kegiatan ditandai Selesai. Silakan lengkapi pelaporan kegiatan.');
+      setCompleteTarget(null);
+      setReportEvent(res.event);
+      router.refresh();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Gagal menandai kegiatan selesai.');
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header Halaman */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-primary/10 text-primary">
-              <Calendar className="w-5 h-5" />
-            </span>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">
-              Manajemen Event & Sekolah Pasar Modal (SPM)
-            </h1>
-          </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            Kelola agenda kegiatan organisasi, pantau kuota secara real-time, dan hubungkan langsung dengan Google Spreadsheet.
-          </p>
-        </div>
-
-        <Button
-          onClick={() => {
-            setEditingEvent(null);
-            setModalOpen(true);
-          }}
-          className="bg-gold hover:bg-gold-hover text-ink font-bold shadow-sm inline-flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4 text-ink" />
-          Buat Kegiatan Baru
-        </Button>
-      </div>
+      <PageHeader
+        badge="Agenda & Sekolah Pasar Modal"
+        title="Manajemen Event & Sekolah Pasar Modal (SPM)"
+        description="Kelola agenda kegiatan organisasi, pantau kuota secara real-time, dan hubungkan langsung dengan Google Spreadsheet."
+        actions={
+          canManageEvent(user) ? (
+            <Button
+              onClick={() => {
+                setEditingEvent(null);
+                setModalOpen(true);
+              }}
+              variant="gold"
+              className="font-bold shadow-sm inline-flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4 text-ink" />
+              Buat Kegiatan Baru
+            </Button>
+          ) : undefined
+        }
+      />
 
       {/* Filter Bar */}
       <div className="bg-white p-4 rounded-2xl border border-border shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        {/* Tab Kategori */}
-        <div className="flex items-center gap-1.5 p-1 bg-secondary/50 rounded-xl border border-border/60 w-full md:w-auto overflow-x-auto no-scrollbar">
-          <button
-            onClick={() => setCategoryFilter('ALL')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              categoryFilter === 'ALL'
-                ? 'bg-white text-primary shadow-xs'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Semua Kegiatan
-          </button>
-          <button
-            onClick={() => setCategoryFilter('SPM')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-              categoryFilter === 'SPM'
-                ? 'bg-white text-primary shadow-xs'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-primary" />
-            Sekolah Pasar Modal (SPM)
-          </button>
-          <button
-            onClick={() => setCategoryFilter('EVENT')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              categoryFilter === 'EVENT'
-                ? 'bg-white text-primary shadow-xs'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Program Kerja & Seminar
-          </button>
-        </div>
+        <TabBar
+          value={categoryFilter}
+          onChange={setCategoryFilter}
+          tabs={[
+            { id: 'ALL', label: 'Semua Kegiatan', count: events.length },
+            { id: 'SPM', label: 'Sekolah Pasar Modal (SPM)', count: events.filter((e) => e.category === 'SPM' || e.category_type === 'SPM').length },
+            { id: 'EVENT', label: 'Program Kerja & Seminar', count: events.filter((e) => e.category !== 'SPM' && e.category_type !== 'SPM').length },
+          ]}
+        />
 
         {/* Search & Status Filter */}
         <div className="flex flex-col sm:flex-row items-center gap-3">
@@ -187,7 +185,7 @@ export function EventClient({ user, initialEvents, periods }: EventClientProps) 
           <Calendar className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
           <h3 className="text-base font-bold text-foreground">Belum Ada Kegiatan</h3>
           <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-            Tidak ada kegiatan atau SPM yang sesuai dengan filter yang dipilih. Silakan klik tombol "Buat Kegiatan Baru".
+            Tidak ada kegiatan atau SPM yang sesuai dengan filter yang dipilih. Silakan klik tombol &ldquo;Buat Kegiatan Baru&rdquo;.
           </p>
         </div>
       ) : (
@@ -225,14 +223,16 @@ export function EventClient({ user, initialEvents, periods }: EventClientProps) 
                     <div className="absolute top-3 right-3 flex items-center gap-1.5">
                       <span
                         className={`px-2.5 py-1 rounded-full text-[11px] font-bold shadow-xs ${
-                          isOpen
+                          event.status === 'COMPLETED'
+                            ? 'bg-cerulean text-white'
+                            : isOpen
                             ? 'bg-emerald-500 text-white'
                             : event.status === 'CLOSED' || isFull
                             ? 'bg-rose-500 text-white'
                             : 'bg-amber-500 text-white'
                         }`}
                       >
-                        {isFull ? 'KUOTA PENUH' : event.status}
+                        {event.status === 'COMPLETED' ? 'SELESAI' : isFull ? 'KUOTA PENUH' : event.status}
                       </span>
                     </div>
 
@@ -329,26 +329,80 @@ export function EventClient({ user, initialEvents, periods }: EventClientProps) 
                   </div>
                 </div>
 
+                {/* Status Pelaporan Kegiatan (jika COMPLETED) */}
+                {event.status === 'COMPLETED' && canViewEventReport(user, event.division_code) ? (
+                  <div className="px-5 pb-3">
+                    {(() => {
+                      const rep = reportsByEvent[event.id];
+                      const tone = !rep
+                        ? 'bg-amber-50 text-amber-800 border-amber-200'
+                        : rep.status === 'APPROVED'
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                        : rep.status === 'REVISION_NEEDED'
+                        ? 'bg-rose-50 text-rose-800 border-rose-200'
+                        : 'bg-cerulean-light/60 text-cerulean-dark border-cerulean/30';
+                      const label = !rep
+                        ? 'Belum ada laporan kegiatan'
+                        : rep.status === 'APPROVED'
+                        ? 'Laporan Disetujui Presidium'
+                        : rep.status === 'REVISION_NEEDED'
+                        ? 'Laporan Perlu Revisi'
+                        : 'Laporan Menunggu Verifikasi Presidium';
+                      return (
+                        <div className={`px-3 py-1.5 rounded-xl border text-[11px] font-semibold ${tone}`}>
+                          {label}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                ) : null}
+
                 {/* Footer Action Buttons */}
-                <div className="p-4 bg-secondary/20 border-t border-border flex items-center justify-between gap-2">
+                <div className="p-4 bg-secondary/20 border-t border-border flex flex-wrap items-center justify-between gap-2">
                   <Link
                     href={`/dashboard/event-spm/${event.id}/peserta`}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-bold bg-white hover:bg-secondary text-primary border border-border shadow-xs transition-colors"
+                    className="flex-1 min-w-[100px] inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-bold bg-white hover:bg-secondary text-primary border border-border shadow-xs transition-colors"
                   >
                     <Users className="w-3.5 h-3.5" />
                     Peserta ({count})
                   </Link>
 
-                  <button
-                    onClick={() => {
-                      setEditingEvent(event);
-                      setModalOpen(true);
-                    }}
-                    title="Edit Kegiatan"
-                    className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white border border-transparent hover:border-border transition-colors"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                  </button>
+                  {event.status !== 'COMPLETED' && canMarkEventCompleted(user, event.division_code) ? (
+                    <button
+                      type="button"
+                      onClick={() => setCompleteTarget(event)}
+                      title="Tandai Kegiatan Selesai"
+                      className="inline-flex items-center gap-1 py-1.5 px-2.5 rounded-xl text-xs font-bold bg-cerulean-light/70 hover:bg-cerulean hover:text-white text-cerulean-dark border border-cerulean/30 transition-colors cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Selesai
+                    </button>
+                  ) : null}
+
+                  {event.status === 'COMPLETED' && canViewEventReport(user, event.division_code) ? (
+                    <button
+                      type="button"
+                      onClick={() => setReportEvent(event)}
+                      title="Pelaporan Kegiatan"
+                      className="inline-flex items-center gap-1 py-1.5 px-2.5 rounded-xl text-xs font-bold bg-gold-light hover:bg-gold text-ink border border-gold/40 transition-colors cursor-pointer"
+                    >
+                      <ClipboardList className="w-3.5 h-3.5" />
+                      {reportsByEvent[event.id] ? 'Laporan' : 'Buat Laporan'}
+                    </button>
+                  ) : null}
+
+                  {canManageEvent(user, event.division_code) ? (
+                    <button
+                      onClick={() => {
+                        setEditingEvent(event);
+                        setModalOpen(true);
+                      }}
+                      title="Edit Kegiatan"
+                      className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white border border-transparent hover:border-border transition-colors"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                  ) : null}
 
                   <Link
                     href={`/kegiatan/${event.slug}`}
@@ -359,14 +413,16 @@ export function EventClient({ user, initialEvents, periods }: EventClientProps) 
                     <ExternalLink className="w-3.5 h-3.5" />
                   </Link>
 
-                  <button
-                    onClick={() => handleDelete(event.id, event.title)}
-                    disabled={deletingId === event.id}
-                    title="Hapus Kegiatan"
-                    className="p-2 rounded-xl text-muted-foreground hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {canManageEvent(user, event.division_code) ? (
+                    <button
+                      onClick={() => handleDelete(event.id, event.title)}
+                      disabled={deletingId === event.id}
+                      title="Hapus Kegiatan"
+                      className="p-2 rounded-xl text-muted-foreground hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  ) : null}
                 </div>
               </div>
             );
@@ -382,9 +438,47 @@ export function EventClient({ user, initialEvents, periods }: EventClientProps) 
         user={user}
         periods={periods}
         onSuccess={() => {
-          // Re-fetch atau refresh
           router.refresh();
         }}
+      />
+
+      <EventReportModal
+        open={Boolean(reportEvent)}
+        onOpenChange={(o) => !o && setReportEvent(null)}
+        event={reportEvent}
+        existingReport={reportEvent ? reportsByEvent[reportEvent.id] ?? null : null}
+        user={user}
+        onSaved={(saved) => {
+          setReportsByEvent((prev) => ({ ...prev, [saved.event_id]: saved }));
+          router.refresh();
+        }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(completeTarget)}
+        onOpenChange={(o) => !o && setCompleteTarget(null)}
+        title="Tandai Kegiatan Selesai?"
+        description={
+          <>
+            Kegiatan <strong>&ldquo;{completeTarget?.title}&rdquo;</strong> akan ditandai selesai (COMPLETED). Setelah ini Kadiv/Wakadiv dapat mengisi pelaporan kegiatan ke Presidium.
+          </>
+        }
+        confirmLabel="Ya, Tandai Selesai"
+        variant="cerulean"
+        onConfirm={confirmMarkCompleted}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        title="Hapus Kegiatan?"
+        description={
+          <>
+            Apakah Anda yakin ingin menghapus kegiatan <strong>&ldquo;{deleteTarget?.title}&rdquo;</strong>? Seluruh data pendaftar terkait juga akan dihapus permanen.
+          </>
+        }
+        confirmLabel="Ya, hapus permanen"
+        onConfirm={confirmDelete}
       />
     </div>
   );

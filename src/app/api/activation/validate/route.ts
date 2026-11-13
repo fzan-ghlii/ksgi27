@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { errorResponse } from '@/lib/api/route';
+import { badRequest } from '@/lib/errors';
 import { getInviteByToken } from '@/lib/data/invites';
 import {
   buildRateLimitHeaders,
@@ -19,18 +21,15 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { searchParams } = new URL(req.url);
-    const token = searchParams.get('token');
-
+    const token = new URL(req.url).searchParams.get('token');
     if (!token) {
-      return NextResponse.json({ error: 'Token aktivasi wajib disertakan' }, { status: 400 });
+      throw badRequest('Token aktivasi wajib disertakan');
     }
 
     const result = await getInviteByToken(token);
     return NextResponse.json(result, { headers: buildRateLimitHeaders(rl) });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Gagal memverifikasi token';
-    return NextResponse.json({ error: msg }, { status: 500 });
+  } catch (err) {
+    return errorResponse(err);
   }
 }
 

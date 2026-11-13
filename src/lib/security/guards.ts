@@ -41,6 +41,24 @@ export function isValidWebpBuffer(buf: Uint8Array | Buffer): boolean {
   );
 }
 
+/**
+ * Validasi magic bytes header PDF ("%PDF-") untuk menolak file bukan PDF
+ * yang mengganti ekstensi menjadi .pdf.
+ */
+export function isValidPdfBuffer(buf: Uint8Array | Buffer): boolean {
+  if (!buf || buf.length < 8) {
+    return false;
+  }
+
+  return (
+    buf[0] === 0x25 && // %
+    buf[1] === 0x50 && // P
+    buf[2] === 0x44 && // D
+    buf[3] === 0x46 && // F
+    buf[4] === 0x2d // -
+  );
+}
+
 const SAFE_DOC_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
 
 /**

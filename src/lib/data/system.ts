@@ -34,7 +34,7 @@ const SYSTEM_CONFIG_CACHE_TTL = 30 * 1000; // 30 seconds
 /**
  * Memastikan actor adalah Creator (Superuser).
  */
-export function assertIsCreator(actor: UserProfile) {
+function assertIsCreator(actor: UserProfile) {
   if (actor.role !== 'creator') {
     throw forbidden('Akses ditolak. Modul Sistem hanya dapat diakses oleh peran Creator.');
   }

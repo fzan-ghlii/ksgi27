@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { LogIn, Shield, AlertCircle } from 'lucide-react';
+import { LogIn, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/api-client';
 import { GibeiLogo } from '@/components/shared/logo';
 
 function LoginForm() {
@@ -22,16 +23,10 @@ function LoginForm() {
   const [error, setError] = React.useState<string | null>(null);
 
   const processIdToken = async (idToken: string) => {
-    const res = await fetch('/api/auth/session', {
+    const data = await apiFetch<{ user: { full_name: string } }>('/api/auth/session', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id_token: idToken }),
+      body: { id_token: idToken },
     });
-
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || 'Gagal membuat sesi login.');
-    }
 
     toast.success(`Selamat datang, ${data.user.full_name}!`);
     router.push(nextUrl);

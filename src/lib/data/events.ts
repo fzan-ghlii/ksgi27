@@ -1,14 +1,21 @@
 import 'server-only';
-import { FieldValue } from 'firebase-admin/firestore';
 import { adminDb } from '@/lib/firebase/admin';
 import type { DivisionCode, EventAndSpm, Registration, UserProfile } from '@/types';
 import { divisionDocId } from '@/lib/constants/divisions';
-import { isKadivUp, isPresidiumUp } from '@/lib/auth/permissions';
+import {
+  canManageEvent,
+  canMarkAttendance,
+  canMarkEventCompleted,
+  canViewEventRegistrations,
+  isKadivUp,
+} from '@/lib/auth/permissions';
 import { EventInput, EventRegisterInput, EventUpdateInput } from '@/lib/schemas/event';
 import { slugify } from '@/lib/utils/content';
 import { badRequest, forbidden, notFound } from '@/lib/errors';
 import { sanitizeCsvCell } from '@/lib/security/guards';
 import { writeAudit } from '@/lib/data/audit';
+import { invalidatePublicCache, revalidatePublicPaths } from '@/lib/data/public';
+import { ensureUniqueSlug } from '@/lib/data/slug';
 import {
   appendParticipantToSheet,
   batchSyncParticipantsToSheet,
@@ -18,39 +25,37 @@ import {
 const eventsCol = () => adminDb.collection('events');
 const registrationsCol = () => adminDb.collection('registrations');
 
-/**
- * Validasi hak akses pengelolaan event:
- * - Creator & Presidium: Semua event lintas divisi.
- * - Kadiv Edukasi: Khusus SPM dan event divisinya.
- * - Kadiv lainnya: Khusus event divisi masing-masing.
- * - Anggota: Hanya baca & absensi.
- */
-function assertCanManageEvent(actor: UserProfile, eventData?: Partial<EventAndSpm>) {
-  if (isPresidiumUp(actor)) return;
-
-  if (isKadivUp(actor)) {
-    if (eventData?.division_code && actor.division_code !== eventData.division_code) {
-      throw forbidden(`Anda hanya berwenang mengelola kegiatan di Divisi ${actor.division_code}.`);
-    }
-    return;
-  }
-
-  throw forbidden('Hanya Pengurus dengan tingkatan minimal Kepala Divisi yang dapat mengelola kegiatan.');
+function invalidateEventCaches(...slugs: Array<string | undefined>) {
+  invalidatePublicCache('events');
+  const detailPaths = slugs.filter(Boolean).map((s) => `/kegiatan/${s}`);
+  revalidatePublicPaths(['/', '/kegiatan', ...detailPaths]);
 }
 
-/**
- * Cari slug unik untuk event.
- */
-async function uniqueEventSlug(base: string, selfId?: string): Promise<string> {
-  for (let i = 1; i <= 50; i++) {
-    const candidate = i === 1 ? base : `${base}-${i}`;
-    const snap = await eventsCol().where('slug', '==', candidate).limit(2).get();
-    if (snap.docs.every((d) => d.id === selfId)) return candidate;
+function assertCanManageEvent(actor: UserProfile, divisionCode?: DivisionCode | null) {
+  if (!canManageEvent(actor, divisionCode)) {
+    throw forbidden(
+      isKadivUp(actor)
+        ? `Anda hanya berwenang mengelola kegiatan di Divisi ${actor.division_code}.`
+        : 'Hanya Pengurus dengan tingkatan minimal Kepala Divisi yang dapat mengelola kegiatan.'
+    );
   }
-  return `${base}-${Date.now().toString(36)}`;
 }
 
-export interface ListEventsFilter {
+function toParticipantSummary(d: Registration) {
+  return {
+    registered_at: d.registered_at,
+    full_name: d.participant_name || d.full_name || '',
+    nim: d.participant_nim || d.nim || '',
+    email: d.participant_email || d.email || '',
+    whatsapp: d.participant_phone || d.whatsapp || '',
+    institution: d.institution_faculty || d.institution || '',
+    has_rdn: !!d.has_rdn,
+    attendance_status: d.attendance_status || 'Registered',
+    notes: d.notes || '',
+  };
+}
+
+interface ListEventsFilter {
   category?: 'SPM' | 'EVENT';
   division_code?: DivisionCode;
   status?: string;
@@ -90,18 +95,11 @@ export async function getEventById(id: string): Promise<EventAndSpm | null> {
   return { id: doc.id, ...(doc.data() as Omit<EventAndSpm, 'id'>) };
 }
 
-export async function getEventBySlug(slug: string): Promise<EventAndSpm | null> {
-  const snap = await eventsCol().where('slug', '==', slug).limit(1).get();
-  if (snap.empty) return null;
-  const d = snap.docs[0];
-  return { id: d.id, ...(d.data() as Omit<EventAndSpm, 'id'>) };
-}
-
 export async function createEvent(input: EventInput, actor: UserProfile): Promise<EventAndSpm> {
-  assertCanManageEvent(actor, { division_code: input.division_code });
+  assertCanManageEvent(actor, input.division_code);
 
   const rawSlug = input.slug && input.slug.trim() !== '' ? input.slug : slugify(input.title);
-  const slug = await uniqueEventSlug(rawSlug);
+  const slug = await ensureUniqueSlug(eventsCol(), rawSlug);
 
   const now = new Date().toISOString();
   const divisionId = divisionDocId(input.period_id, input.division_code);
@@ -148,6 +146,7 @@ export async function createEvent(input: EventInput, actor: UserProfile): Promis
     summary: `Membuat kegiatan ${input.category}: ${input.title}`,
   });
 
+  if (payload.is_published) invalidateEventCaches(slug);
   return { id: ref.id, ...payload };
 }
 
@@ -159,7 +158,24 @@ export async function updateEvent(
   const existing = await getEventById(id);
   if (!existing) throw notFound('Kegiatan tidak ditemukan.');
 
-  assertCanManageEvent(actor, existing);
+  const definedKeys = (Object.keys(input) as Array<keyof EventUpdateInput>).filter(
+    (k) => input[k] !== undefined
+  );
+  const isCompletionOnly =
+    definedKeys.length === 1 && definedKeys[0] === 'status' && input.status === 'COMPLETED';
+
+  if (isCompletionOnly) {
+    if (!canMarkEventCompleted(actor, existing.division_code)) {
+      throw forbidden(
+        'Hanya Kadiv/Wakadiv divisi terkait atau Presidium yang dapat menandai kegiatan selesai.'
+      );
+    }
+  } else {
+    assertCanManageEvent(actor, existing.division_code);
+    if (input.division_code !== undefined) {
+      assertCanManageEvent(actor, input.division_code);
+    }
+  }
 
   const patch: Partial<EventAndSpm> = {
     updated_at: new Date().toISOString(),
@@ -205,7 +221,7 @@ export async function updateEvent(
   if (input.is_published !== undefined) patch.is_published = input.is_published;
 
   if (input.slug !== undefined && input.slug.trim() !== '' && input.slug !== existing.slug) {
-    patch.slug = await uniqueEventSlug(slugify(input.slug), id);
+    patch.slug = await ensureUniqueSlug(eventsCol(), slugify(input.slug), { selfId: id });
   }
 
   await eventsCol().doc(id).update(patch);
@@ -217,6 +233,7 @@ export async function updateEvent(
     summary: `Memperbarui kegiatan: ${patch.title || existing.title}`,
   });
 
+  invalidateEventCaches(existing.slug, patch.slug);
   return { ...existing, ...patch };
 }
 
@@ -224,7 +241,7 @@ export async function deleteEvent(id: string, actor: UserProfile): Promise<void>
   const existing = await getEventById(id);
   if (!existing) throw notFound('Kegiatan tidak ditemukan.');
 
-  assertCanManageEvent(actor, existing);
+  assertCanManageEvent(actor, existing.division_code);
 
   // Hapus semua data registrasi terkait
   const regSnap = await registrationsCol().where('event_id', '==', id).get();
@@ -239,6 +256,7 @@ export async function deleteEvent(id: string, actor: UserProfile): Promise<void>
     target_id: id,
     summary: `Menghapus kegiatan: ${existing.title}`,
   });
+  invalidateEventCaches(existing.slug);
 }
 
 /**
@@ -402,6 +420,8 @@ export async function registerParticipant(
     }
   }
 
+  invalidateEventCaches(result.event.slug);
+
   return {
     registration: result.registration,
     event: result.event,
@@ -416,8 +436,7 @@ export async function listRegistrations(eventId: string, actor: UserProfile): Pr
   const event = await getEventById(eventId);
   if (!event) throw notFound('Kegiatan tidak ditemukan.');
 
-  // Anggota divisi dapat melihat peserta kegiatan divisinya, Presidium/Creator bisa melihat semua
-  if (!isPresidiumUp(actor) && actor.division_code !== event.division_code) {
+  if (!canViewEventRegistrations(actor, event.division_code)) {
     throw forbidden('Anda tidak memiliki hak akses untuk melihat peserta kegiatan ini.');
   }
 
@@ -441,7 +460,7 @@ export async function updateAttendance(
   const event = await getEventById(eventId);
   if (!event) throw notFound('Kegiatan tidak ditemukan.');
 
-  if (!isPresidiumUp(actor) && actor.division_code !== event.division_code) {
+  if (!canMarkAttendance(actor, event.division_code)) {
     throw forbidden('Anda tidak memiliki wewenang mencatat kehadiran kegiatan ini.');
   }
 
@@ -485,7 +504,7 @@ export async function syncEventToGoogleSheet(
   const event = await getEventById(eventId);
   if (!event) throw notFound('Kegiatan tidak ditemukan.');
 
-  assertCanManageEvent(actor, event);
+  assertCanManageEvent(actor, event.division_code);
 
   if (!event.spreadsheet_id || event.spreadsheet_id.trim() === '') {
     throw badRequest('Kegiatan ini belum memiliki ID Google Spreadsheet.');
@@ -500,23 +519,10 @@ export async function syncEventToGoogleSheet(
     return { syncedCount: 0, message: 'Seluruh data peserta sudah tersinkronisasi di Google Sheet.' };
   }
 
-  const participants = snap.docs.map((d) => {
-    const data = d.data() as Registration;
-    return {
-      registrationId: d.id,
-      data: {
-        registered_at: data.registered_at,
-        full_name: data.participant_name || data.full_name || '',
-        nim: data.participant_nim || data.nim || '',
-        email: data.participant_email || data.email || '',
-        whatsapp: data.participant_phone || data.whatsapp || '',
-        institution: data.institution_faculty || data.institution || '',
-        has_rdn: !!data.has_rdn,
-        attendance_status: data.attendance_status || 'Registered',
-        notes: data.notes || '',
-      },
-    };
-  });
+  const participants = snap.docs.map((d) => ({
+    registrationId: d.id,
+    data: toParticipantSummary(d.data() as Registration),
+  }));
 
   const res = await batchSyncParticipantsToSheet({
     spreadsheetId: event.spreadsheet_id,
@@ -561,7 +567,7 @@ export async function exportRegistrationsCsv(eventId: string, actor: UserProfile
   const event = await getEventById(eventId);
   if (!event) throw notFound('Kegiatan tidak ditemukan.');
 
-  if (!isKadivUp(actor) && actor.division_code !== event.division_code) {
+  if (!canViewEventRegistrations(actor, event.division_code)) {
     throw forbidden('Anda tidak memiliki wewenang mengunduh data peserta.');
   }
 
@@ -584,18 +590,18 @@ export async function exportRegistrationsCsv(eventId: string, actor: UserProfile
   ];
 
   const rows = snap.docs.map((doc, idx) => {
-    const d = doc.data() as Registration;
+    const p = toParticipantSummary(doc.data() as Registration);
     return [
       idx + 1,
-      sanitizeCsvCell(d.registered_at),
-      sanitizeCsvCell(d.participant_name || d.full_name),
-      sanitizeCsvCell(d.participant_nim || d.nim),
-      sanitizeCsvCell(d.participant_email || d.email),
-      sanitizeCsvCell(d.participant_phone || d.whatsapp),
-      sanitizeCsvCell(d.institution_faculty || d.institution),
-      sanitizeCsvCell(d.has_rdn ? 'Sudah Ada' : 'Belum Ada'),
-      sanitizeCsvCell(d.attendance_status || 'Registered'),
-      sanitizeCsvCell(d.notes || ''),
+      sanitizeCsvCell(p.registered_at),
+      sanitizeCsvCell(p.full_name),
+      sanitizeCsvCell(p.nim),
+      sanitizeCsvCell(p.email),
+      sanitizeCsvCell(p.whatsapp),
+      sanitizeCsvCell(p.institution),
+      sanitizeCsvCell(p.has_rdn ? 'Sudah Ada' : 'Belum Ada'),
+      sanitizeCsvCell(p.attendance_status),
+      sanitizeCsvCell(p.notes),
     ].join(',');
   });
 

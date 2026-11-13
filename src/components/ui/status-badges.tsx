@@ -1,13 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import type { ArticleStatus, GalleryStatus } from '@/types';
 
-export const ARTICLE_STATUS_LABEL: Record<ArticleStatus, string> = {
-  DRAFT: 'Draft',
-  PENDING_REVIEW: 'Pending Review',
-  PUBLISHED: 'Published',
-  REJECTED: 'Rejected',
-};
-
 export function ArticleStatusBadge({ status }: { status: ArticleStatus }) {
   switch (status) {
     case 'DRAFT':

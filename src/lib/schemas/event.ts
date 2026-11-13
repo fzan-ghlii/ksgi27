@@ -3,10 +3,9 @@ import { DIVISION_CODES } from '@/lib/constants/divisions';
 import { optionalImageRef } from '@/lib/schemas/content';
 import { SLUG_PATTERN } from '@/lib/utils/content';
 
-export const EVENT_CATEGORIES = ['SPM', 'EVENT'] as const;
-export type EventCategory = (typeof EVENT_CATEGORIES)[number];
+const EVENT_CATEGORIES = ['SPM', 'EVENT'] as const;
 
-export const SPM_LEVELS = [
+const SPM_LEVELS = [
   'Level 1',
   'Level 2',
   'Level Lanjutan - Fundamental',
@@ -15,40 +14,13 @@ export const SPM_LEVELS = [
 ] as const;
 export type SpmLevel = (typeof SPM_LEVELS)[number];
 
-export const SPM_LEVEL_INFO: Record<string, { label: string; desc: string }> = {
-  'Level 1': {
-    label: 'Level 1: Pengenalan Investasi',
-    desc: 'Pengenalan dasar investasi, pasar modal, dan perencanaan keuangan.',
-  },
-  'Level 2': {
-    label: 'Level 2: Belajar tentang Saham',
-    desc: 'Mekanisme perdagangan saham, pembukaan RDN, dan dasar instrumen saham.',
-  },
-  'Level Lanjutan - Fundamental': {
-    label: 'Level Lanjutan: Analisis Fundamental',
-    desc: 'Analisis laporan keuangan, rasio valuasi, dan prospek bisnis emiten.',
-  },
-  'Level Lanjutan - Teknikal': {
-    label: 'Level Lanjutan: Analisis Teknikal',
-    desc: 'Analisis grafik harga, chart patterns, indikator teknikal, dan timing entry/exit.',
-  },
-  'Level 3': {
-    label: 'Level Lanjutan: Analisis Lanjutan',
-    desc: 'Praktik portofolio dan strategi investasi.',
-  },
-};
+const REGISTRATION_MODES = ['INTERNAL_FORM', 'EXTERNAL_GFORM'] as const;
 
-export const REGISTRATION_MODES = ['INTERNAL_FORM', 'EXTERNAL_GFORM'] as const;
-export type RegistrationMode = (typeof REGISTRATION_MODES)[number];
+const LOCATION_TYPES = ['ONLINE', 'OFFLINE', 'HYBRID'] as const;
 
-export const LOCATION_TYPES = ['ONLINE', 'OFFLINE', 'HYBRID'] as const;
-export type LocationType = (typeof LOCATION_TYPES)[number];
+const EVENT_STATUSES = ['DRAFT', 'OPEN', 'CLOSED', 'COMPLETED'] as const;
 
-export const EVENT_STATUSES = ['DRAFT', 'OPEN', 'CLOSED', 'COMPLETED'] as const;
-export type EventStatus = (typeof EVENT_STATUSES)[number];
-
-export const ATTENDANCE_STATUSES = ['Registered', 'Attended', 'Absent'] as const;
-export type AttendanceStatus = (typeof ATTENDANCE_STATUSES)[number];
+const ATTENDANCE_STATUSES = ['Registered', 'Attended', 'Absent'] as const;
 
 const divisionCode = z.enum(DIVISION_CODES, { message: 'Divisi tidak valid.' });
 
@@ -60,7 +32,7 @@ const httpUrl = z
 
 const optionalHttpUrl = z.union([z.literal(''), httpUrl]).optional();
 
-export const EventBaseSchema = z.object({
+const EventBaseSchema = z.object({
   title: z.string().trim().min(5, 'Judul kegiatan minimal 5 karakter.').max(150),
   slug: z
     .union([
@@ -116,7 +88,7 @@ export type EventUpdateInput = z.infer<typeof EventUpdateSchema>;
 
 // ------------------------------------------------------------------ Pendaftaran Peserta (Data Teks)
 
-export const PHONE_REGEX = /^(?:\+62|62|0)[0-9\s-]{8,18}$/;
+const PHONE_REGEX = /^(?:\+62|62|0)[0-9\s-]{8,18}$/;
 
 export const EventRegisterSchema = z.object({
   full_name: z.string().trim().min(3, 'Nama lengkap minimal 3 karakter.').max(100),
@@ -151,8 +123,6 @@ export const AttendanceUpdateSchema = z.object({
   attendance_status: z.enum(ATTENDANCE_STATUSES, { message: 'Status kehadiran tidak valid.' }),
 });
 
-export type AttendanceUpdateInput = z.infer<typeof AttendanceUpdateSchema>;
-
 // ------------------------------------------------------------------ Webhook Google Form Payload
 
 export const GFormWebhookSchema = z.object({
@@ -171,5 +141,3 @@ export const GFormWebhookSchema = z.object({
   }),
   notes: z.string().trim().max(400).optional().default(''),
 });
-
-export type GFormWebhookInput = z.infer<typeof GFormWebhookSchema>;

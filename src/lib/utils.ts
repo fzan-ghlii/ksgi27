@@ -35,3 +35,20 @@ export function formatDateTime(dateString: string | undefined | null): string {
   }
 }
 
+/** Batasi eksekusi promise agar request tidak menggantung saat jaringan lambat. */
+export async function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number = 5000,
+  errorMessage: string = 'TIMEOUT'
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(errorMessage)), ms);
+  });
+  return Promise.race([
+    promise.finally(() => clearTimeout(timer)),
+    timeoutPromise,
+  ]);
+}
+
+

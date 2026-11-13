@@ -4,20 +4,17 @@ import * as React from 'react';
 import Link from 'next/link';
 import { 
   ArrowRight, 
-  BookOpen, 
   Clock, 
-  Eye, 
   Newspaper, 
   Search, 
   Sparkles, 
-  Tag 
 } from 'lucide-react';
 import type { Article } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/components/ui/empty-state';
-import { ImagePreview } from '@/components/shared/image-inputs';
+import { ArticleCard } from '@/components/public/article-card';
 import { ARTICLE_CATEGORIES } from '@/lib/schemas/content';
 import { markdownExcerpt } from '@/lib/utils/content';
 import { formatDate, cn } from '@/lib/utils';
@@ -166,71 +163,7 @@ export function ArtikelPublicClient({ initialArticles }: ArtikelPublicClientProp
       {regularArticles.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {regularArticles.map((art) => (
-            <article
-              key={art.id}
-              className="bento-card overflow-hidden flex flex-col justify-between bg-white border border-line hover:border-cerulean transition-all shadow-xs group"
-            >
-              <div>
-                {/* Thumbnail */}
-                <Link href={`/artikel/${art.slug}`} className="block relative h-48 bg-slate-100 overflow-hidden">
-                  {art.thumbnail_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={art.thumbnail_url}
-                      alt={art.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-cerulean/10 via-surface to-cyan/10 text-cerulean">
-                      <BookOpen className="h-10 w-10 opacity-50" />
-                    </div>
-                  )}
-                  <div className="absolute top-3 left-3">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/95 text-cerulean-dark shadow-xs border border-line">
-                      {art.category}
-                    </span>
-                  </div>
-                </Link>
-
-                {/* Content */}
-                <div className="p-5 space-y-2.5">
-                  <div className="flex items-center gap-2 text-[11px] text-ink-muted">
-                    <span>{formatDate(art.published_at)}</span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" /> {art.reading_minutes || 1} mnt baca
-                    </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <Eye className="h-3 w-3" /> {art.view_count || 0}
-                    </span>
-                  </div>
-
-                  <Link href={`/artikel/${art.slug}`}>
-                    <h3 className="text-base font-bold text-ink leading-snug hover:text-cerulean-dark transition-colors line-clamp-2">
-                      {art.title}
-                    </h3>
-                  </Link>
-
-                  <p className="text-xs text-ink-muted line-clamp-3 leading-relaxed">
-                    {markdownExcerpt(art.content, 140)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="px-5 py-3 border-t border-line/70 bg-surface/30 flex items-center justify-between text-xs">
-                <span className="text-ink-muted truncate max-w-[140px]">
-                  Oleh <strong>{art.author_name}</strong>
-                </span>
-                <Link
-                  href={`/artikel/${art.slug}`}
-                  className="font-bold text-cerulean-dark hover:text-cerulean inline-flex items-center gap-1 transition-colors"
-                >
-                  Baca <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-            </article>
+            <ArticleCard key={art.id} article={art} showViews />
           ))}
         </div>
       ) : (

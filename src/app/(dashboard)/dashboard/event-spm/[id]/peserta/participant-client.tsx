@@ -3,17 +3,16 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { EventAndSpm, Registration, UserProfile } from '@/types';
+import { EventAndSpm, Registration } from '@/types';
 import { Button } from '@/components/ui/button';
+import { apiFetch } from '@/lib/api-client';
 import { toast } from 'sonner';
 import {
   ArrowLeft,
   Download,
-  FileSpreadsheet,
   RefreshCw,
   Search,
   CheckCircle2,
-  XCircle,
   Clock,
   Phone,
   Mail,
@@ -22,13 +21,11 @@ import {
 } from 'lucide-react';
 
 interface ParticipantClientProps {
-  user: UserProfile;
   event: EventAndSpm;
   initialParticipants: Registration[];
 }
 
 export function ParticipantClient({
-  user,
   event,
   initialParticipants,
 }: ParticipantClientProps) {
@@ -62,9 +59,7 @@ export function ParticipantClient({
   const handleSyncSheet = async () => {
     try {
       setSyncing(true);
-      const res = await fetch(`/api/events/${event.id}/sync`, { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal sinkronisasi ke Google Sheet.');
+      const data = await apiFetch<{ message?: string }>(`/api/events/${event.id}/sync`, { method: 'POST' });
 
       toast.success(data.message || 'Sinkronisasi selesai.');
       // Tandai yang ada sebagai tersinkron
@@ -84,17 +79,13 @@ export function ParticipantClient({
   ) => {
     try {
       setUpdatingId(regId);
-      const res = await fetch(`/api/events/${event.id}/attendance`, {
+      await apiFetch(`/api/events/${event.id}/attendance`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           registration_id: regId,
           attendance_status: newStatus,
-        }),
+        },
       });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal memperbarui status kehadiran.');
 
       setParticipants((prev) =>
         prev.map((p) => (p.id === regId ? { ...p, attendance_status: newStatus } : p))

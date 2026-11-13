@@ -2,22 +2,18 @@ import 'server-only';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
 import { UserProfile, Period, Division } from '@/types';
 import { OFFICIAL_DIVISIONS } from '@/lib/constants/divisions';
+import { withTimeout } from '@/lib/utils';
 
-async function withTimeout<T>(promise: Promise<T>, ms: number = 5000): Promise<T> {
-  let timer: NodeJS.Timeout;
-  const timeoutPromise = new Promise<T>((_, reject) => {
-    timer = setTimeout(() => reject(new Error('TIMEOUT')), ms);
-  });
-  return Promise.race([
-    promise.then((res) => {
-      clearTimeout(timer);
-      return res;
-    }),
-    timeoutPromise,
-  ]);
+const SEED_TTL_MS = 5 * 60 * 1000;
+let cachedPeriod: { id: string; expiresAt: number } | null = null;
+let pendingSeed: Promise<string> | null = null;
+
+/** Hapus cache periode hasil seed setelah data periode diubah. */
+export function invalidateSeededPeriodCache() {
+  cachedPeriod = null;
 }
 
-export function getCreatorEmails(): string[] {
+function getCreatorEmails(): string[] {
   const env = process.env.CREATOR_EMAILS || '';
   return env
     .split(',')
@@ -25,7 +21,7 @@ export function getCreatorEmails(): string[] {
     .filter(Boolean);
 }
 
-export function isCreatorEmail(email: string | undefined | null): boolean {
+function isCreatorEmail(email: string | undefined | null): boolean {
   if (!email) return false;
   const list = getCreatorEmails();
   return list.includes(email.toLowerCase().trim());
@@ -37,6 +33,18 @@ export function isCreatorEmail(email: string | undefined | null): boolean {
  * diarsipkan Presidium tidak muncul kembali.
  */
 export async function seedInitialPeriodAndDivisions(): Promise<string> {
+  if (cachedPeriod && Date.now() < cachedPeriod.expiresAt) {
+    return cachedPeriod.id;
+  }
+  if (pendingSeed) return pendingSeed;
+
+  pendingSeed = resolveOrSeedPeriod().finally(() => {
+    pendingSeed = null;
+  });
+  return pendingSeed;
+}
+
+async function resolveOrSeedPeriod(): Promise<string> {
   const periodId = '2026-2027';
   try {
     const anyPeriod = await withTimeout(adminDb.collection('periods').limit(1).get(), 800);
@@ -45,7 +53,9 @@ export async function seedInitialPeriodAndDivisions(): Promise<string> {
         adminDb.collection('periods').where('is_current', '==', true).limit(1).get(),
         800
       );
-      return current.empty ? anyPeriod.docs[0].id : current.docs[0].id;
+      const id = current.empty ? anyPeriod.docs[0].id : current.docs[0].id;
+      cachedPeriod = { id, expiresAt: Date.now() + SEED_TTL_MS };
+      return id;
     }
 
     const periodRef = adminDb.collection('periods').doc(periodId);
@@ -92,8 +102,9 @@ export async function seedInitialPeriodAndDivisions(): Promise<string> {
       }
       await withTimeout(batch.commit(), 800);
     }
-  } catch (err) {
-    // If database is not reachable during build/prerender, fallback gracefully
+    cachedPeriod = { id: periodId, expiresAt: Date.now() + SEED_TTL_MS };
+  } catch {
+    // If database is not reachable during build/prerender, fallback gracefully without caching
   }
 
   return periodId;

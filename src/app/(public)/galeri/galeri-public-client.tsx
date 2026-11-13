@@ -5,16 +5,13 @@ import {
   Camera, 
   ChevronLeft, 
   ChevronRight, 
-  Eye, 
-  Image as ImageIcon, 
-  Sparkles, 
   X 
 } from 'lucide-react';
-import type { DivisionCode, Gallery, Period } from '@/types';
+import type { Gallery, Period } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/form-controls';
 import { EmptyState } from '@/components/ui/empty-state';
+import { GalleryCard } from '@/components/public/gallery-card';
 import { OFFICIAL_DIVISIONS } from '@/lib/constants/divisions';
 import { formatDate, cn } from '@/lib/utils';
 
@@ -127,64 +124,9 @@ export function GaleriPublicClient({
       {/* Masonry / Grid Gallery Display */}
       {filteredGalleries.length > 0 ? (
         <div className="masonry">
-          {filteredGalleries.map((gal) => {
-            const cover = gal.image_urls[0] || '';
-            return (
-              <div
-                key={gal.id}
-                onClick={() => openLightbox(gal, 0)}
-                className="bento-card overflow-hidden bg-white border border-line hover:border-cerulean transition-all shadow-xs group cursor-pointer"
-              >
-                {/* Photo Image */}
-                <div className="relative overflow-hidden bg-slate-100">
-                  {cover ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={cover}
-                      alt={gal.title}
-                      className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="h-48 flex items-center justify-center text-slate-400">
-                      <ImageIcon className="h-10 w-10" />
-                    </div>
-                  )}
-
-                  {/* Badges Over Image */}
-                  <div className="absolute top-3 left-3">
-                    <Badge variant="cerulean" className="shadow-xs text-[10px]">
-                      {gal.division_code}
-                    </Badge>
-                  </div>
-
-                  <div className="absolute bottom-3 right-3 px-2 py-1 rounded-md bg-ink/75 backdrop-blur-xs text-white text-[11px] font-semibold flex items-center gap-1">
-                    <Camera className="h-3 w-3" />
-                    <span>{gal.image_urls.length} foto</span>
-                  </div>
-
-                  {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-ink/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5">
-                    <Eye className="h-4 w-4" /> Buka Album Foto
-                  </div>
-                </div>
-
-                {/* Caption Details */}
-                <div className="p-4 sm:p-5 space-y-1.5">
-                  <div className="text-[11px] text-ink-muted">
-                    {formatDate(gal.activity_date)}
-                  </div>
-                  <h3 className="font-bold text-sm sm:text-base text-ink group-hover:text-cerulean-dark transition-colors leading-snug">
-                    {gal.title}
-                  </h3>
-                  {gal.caption && (
-                    <p className="text-xs text-ink-muted line-clamp-2 leading-relaxed">
-                      {gal.caption}
-                    </p>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          {filteredGalleries.map((gal) => (
+            <GalleryCard key={gal.id} gallery={gal} onClick={() => openLightbox(gal, 0)} />
+          ))}
         </div>
       ) : (
         <EmptyState

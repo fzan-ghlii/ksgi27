@@ -1,5 +1,5 @@
 import { EventAndSpm } from '@/types';
-import { Calendar, MapPin, Users, ArrowRight, Sparkles } from 'lucide-react';
+import { Calendar, MapPin, Users, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatDateTime } from '@/lib/utils';

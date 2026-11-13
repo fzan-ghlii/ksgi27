@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
-import { canIssueInvite } from '@/lib/auth/roles';
+import { getAllowedInviteRoles } from '@/lib/auth/roles';
 import { listActivationInvites } from '@/lib/data/invites';
 import { AktivasiClient } from './aktivasi-client';
 
@@ -8,11 +8,7 @@ export default async function DashboardAktivasiPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
 
-  // Check if role is allowed to access activation links (Creator, Presidium, Kadiv HRD)
-  const isAllowed = 
-    user.role === 'creator' || 
-    user.role === 'master_presidium' || 
-    (user.role === 'admin_kadiv' && user.division_code === 'HRD');
+  const isAllowed = getAllowedInviteRoles(user.role, user.division_code).length > 0;
 
   if (!isAllowed) {
     return (

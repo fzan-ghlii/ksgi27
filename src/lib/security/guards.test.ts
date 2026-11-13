@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   timingSafeSecretEqual,
   isValidWebpBuffer,
+  isValidPdfBuffer,
   isSafeDocId,
   sanitizeCsvCell,
   isAllowedMutationOrigin,
@@ -127,6 +128,14 @@ describe('isAllowedMutationOrigin', () => {
         fetchSite: 'cross-site',
       })
     ).toEqual({ allowed: false, reason: 'missing-origin' });
+  });
+});
+
+describe('isValidPdfBuffer', () => {
+  it('menerima buffer dengan header %PDF- yang valid dan menolak payload palsu', () => {
+    expect(isValidPdfBuffer(Buffer.from('%PDF-1.7\n1 0 obj'))).toBe(true);
+    expect(isValidPdfBuffer(Buffer.from('<html><script>alert(1)</script></html>'))).toBe(false);
+    expect(isValidPdfBuffer(Buffer.from('%PDF'))).toBe(false);
   });
 });
 

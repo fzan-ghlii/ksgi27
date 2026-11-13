@@ -3,39 +3,16 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  CheckCircle2, 
-  ExternalLink, 
-  Eye, 
-  FileText, 
-  Loader2, 
-  Pencil, 
-  Plus, 
-  RefreshCw, 
-  Send, 
-  Sparkles, 
-  Trash2, 
-  XCircle 
-} from 'lucide-react';
+import { Loader2, Plus, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Article, ArticleStatus, UserProfile } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ArticleStatusBadge } from '@/components/ui/status-badges';
 import { Modal, ConfirmDialog } from '@/components/ui/modal';
-import { EmptyState } from '@/components/ui/empty-state';
 import { Field, Textarea } from '@/components/ui/form-controls';
 import { PageHeader, TabBar } from '@/components/dashboard/page-parts';
-import { ImagePreview } from '@/components/shared/image-inputs';
-import { 
-  canDeleteArticle, 
-  canEditArticle, 
-  canReviewArticle, 
-  canSubmitArticle, 
-  canUnpublishArticle 
-} from '@/lib/auth/permissions';
+import { canReviewArticle } from '@/lib/auth/permissions';
 import { apiFetch } from '@/lib/api-client';
-import { formatDate } from '@/lib/utils';
+import { ArtikelList } from './artikel-list';
 
 interface ArtikelClientProps {
   user: UserProfile;
@@ -221,337 +198,18 @@ export function ArtikelClient({ user, initialArticles }: ArtikelClientProps) {
 
       <TabBar tabs={tabs} value={filterTab} onChange={setFilterTab} />
 
-      {filteredArticles.length === 0 ? (
-        <EmptyState
-          icon={FileText}
-          title={
-            filterTab === 'QUEUE'
-              ? 'Tidak Ada Antrean Review'
-              : 'Belum Ada Artikel'
-          }
-          description={
-            filterTab === 'QUEUE'
-              ? 'Semua artikel dari divisi Anda telah selesai ditinjau.'
-              : 'Belum ada artikel pada kategori ini. Mulai tulis artikel pertama Anda.'
-          }
-          actionLabel="Tulis Artikel Sekarang"
-          onAction={() => router.push('/dashboard/artikel/baru')}
-        />
-      ) : (
-        <div className="rounded-2xl border border-line bg-white shadow-sm overflow-hidden">
-          {/* Mobile View: Kartu Artikel Praktis */}
-          <div className="md:hidden divide-y divide-line">
-            {filteredArticles.map((art) => {
-              const canEdit = canEditArticle(user, art);
-              const canDelete = canDeleteArticle(user, art);
-              const canSubmit = canSubmitArticle(user, art);
-              const canReview = canReviewArticle(user, art);
-              const canUnpub = canUnpublishArticle(user) && art.status === 'PUBLISHED';
-
-              return (
-                <div key={art.id} className="p-4 space-y-3">
-                  <div className="flex items-start gap-3">
-                    <ImagePreview src={art.thumbnail_url ?? ''} className="h-14 w-14 rounded-xl shrink-0" />
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <ArticleStatusBadge status={art.status} />
-                        <Badge variant="cerulean" className="text-[10px] py-0 px-1.5">
-                          {art.division_code}
-                        </Badge>
-                        {art.is_featured && (
-                          <Badge variant="gold" className="text-[10px] py-0 px-1.5 font-bold">
-                            Unggulan
-                          </Badge>
-                        )}
-                      </div>
-                      <h4 className="font-bold text-sm text-ink leading-snug line-clamp-2">
-                        {art.title}
-                      </h4>
-                      <p className="text-[11px] text-ink-muted">
-                        Oleh {art.author_name} • {formatDate(art.published_at || art.updated_at || art.created_at)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {art.review_note && art.status === 'REJECTED' && (
-                    <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 italic">
-                      Revisi: {art.review_note}
-                    </div>
-                  )}
-
-                  <div className="pt-2 border-t border-line/60 flex items-center justify-between gap-2 flex-wrap">
-                    <span className="text-[11px] text-ink-muted">
-                      <strong>{art.view_count || 0}</strong> views • ~{art.reading_minutes || 1} mnt
-                    </span>
-
-                    <div className="flex items-center gap-1">
-                      {canReview && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="cerulean"
-                            className="h-8 px-2 text-xs font-bold gap-1"
-                            onClick={() =>
-                              setReviewModal({
-                                open: true,
-                                article: art,
-                                decision: 'publish',
-                                note: '',
-                                busy: false,
-                              })
-                            }
-                          >
-                            <CheckCircle2 className="h-3.5 w-3.5" /> Terbitkan
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 px-2 text-xs text-rose-600 hover:bg-rose-50"
-                            onClick={() =>
-                              setReviewModal({
-                                open: true,
-                                article: art,
-                                decision: 'reject',
-                                note: '',
-                                busy: false,
-                              })
-                            }
-                          >
-                            Tolak
-                          </Button>
-                        </>
-                      )}
-
-                      {canSubmit && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 px-2 text-xs gap-1 text-cerulean-dark border-cerulean/30"
-                          onClick={() => handleSubmitDraft(art)}
-                        >
-                          <Send className="h-3.5 w-3.5" /> Ajukan Review
-                        </Button>
-                      )}
-
-                      {art.status === 'PUBLISHED' && (
-                        <Link href={`/artikel/${art.slug}`} target="_blank">
-                          <Button size="icon" variant="ghost" className="h-8 w-8" title="Lihat di Web">
-                            <ExternalLink className="h-3.5 w-3.5 text-ink-muted" />
-                          </Button>
-                        </Link>
-                      )}
-
-                      {canEdit && (
-                        <Link href={`/dashboard/artikel/${art.id}/edit`}>
-                          <Button size="icon" variant="ghost" className="h-8 w-8" title="Edit">
-                            <Pencil className="h-3.5 w-3.5 text-ink-muted" />
-                          </Button>
-                        </Link>
-                      )}
-
-                      {canUnpub && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-amber-600"
-                          title="Tarik Publikasi"
-                          onClick={() => setUnpublishConfirm({ open: true, article: art })}
-                        >
-                          <XCircle className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-
-                      {canDelete && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-rose-600 hover:bg-rose-50"
-                          title="Hapus"
-                          onClick={() => setDeleteConfirm({ open: true, article: art })}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Desktop Table View */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-sm">
-            <thead className="bg-surface/70 text-[11px] uppercase tracking-wider text-ink-muted">
-              <tr>
-                <th className="px-4 py-3 text-left font-bold">Artikel</th>
-                <th className="px-4 py-3 text-left font-bold">Kategori & Divisi</th>
-                <th className="px-4 py-3 text-left font-bold">Status</th>
-                <th className="px-4 py-3 text-left font-bold">Statistik</th>
-                <th className="px-4 py-3 text-right font-bold">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {filteredArticles.map((art) => {
-                const canEdit = canEditArticle(user, art);
-                const canDelete = canDeleteArticle(user, art);
-                const canSubmit = canSubmitArticle(user, art);
-                const canReview = canReviewArticle(user, art);
-                const canUnpub = canUnpublishArticle(user) && art.status === 'PUBLISHED';
-
-                return (
-                  <tr key={art.id} className="align-middle hover:bg-slate-50/50 transition-colors">
-                    <td className="px-4 py-3 max-w-sm">
-                      <div className="flex items-start gap-3">
-                        <ImagePreview src={art.thumbnail_url ?? ''} className="h-12 w-12 rounded-lg" />
-                        <div className="min-w-0 flex-1">
-                          <div className="font-bold text-ink leading-snug line-clamp-2">
-                            {art.title}
-                          </div>
-                          <div className="text-xs text-ink-muted mt-1 flex items-center gap-2 flex-wrap">
-                            <span>Oleh <strong>{art.author_name}</strong></span>
-                            <span>•</span>
-                            <span>{formatDate(art.published_at || art.updated_at || art.created_at)}</span>
-                            {art.is_featured && (
-                              <Badge variant="gold" className="text-[10px] py-0 px-1.5 font-bold">
-                                Unggulan
-                              </Badge>
-                            )}
-                          </div>
-                          {art.review_note && art.status === 'REJECTED' && (
-                            <p className="text-[11px] text-rose-600 mt-1 line-clamp-1 italic">
-                              Revisi: {art.review_note}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="space-y-1">
-                        <span className="text-xs font-semibold text-ink block">{art.category}</span>
-                        <Badge variant="cerulean" className="text-[10px]">
-                          {art.division_code}
-                        </Badge>
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <ArticleStatusBadge status={art.status} />
-                    </td>
-
-                    <td className="px-4 py-3 whitespace-nowrap text-xs text-ink-muted">
-                      <div>
-                        <strong className="text-ink font-bold">{art.view_count || 0}</strong> pembaca
-                      </div>
-                      <div className="text-[11px]">~{art.reading_minutes || 1} menit baca</div>
-                    </td>
-
-                    <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {/* Review Action for Kadiv/Presidium */}
-                        {canReview && (
-                          <div className="flex items-center gap-1 mr-1">
-                            <Button
-                              size="sm"
-                              variant="cerulean"
-                              className="h-8 px-2.5 text-xs gap-1 font-bold"
-                              onClick={() =>
-                                setReviewModal({
-                                  open: true,
-                                  article: art,
-                                  decision: 'publish',
-                                  note: '',
-                                  busy: false,
-                                })
-                              }
-                            >
-                              <CheckCircle2 className="h-3.5 w-3.5" /> Terbitkan
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 px-2 text-xs gap-1 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                              onClick={() =>
-                                setReviewModal({
-                                  open: true,
-                                  article: art,
-                                  decision: 'reject',
-                                  note: '',
-                                  busy: false,
-                                })
-                              }
-                            >
-                              <XCircle className="h-3.5 w-3.5" /> Tolak
-                            </Button>
-                          </div>
-                        )}
-
-                        {/* Submit draft for author */}
-                        {canSubmit && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 px-2 text-xs gap-1 hover:border-cerulean text-cerulean-dark"
-                            onClick={() => handleSubmitDraft(art)}
-                            title="Kirim artikel untuk direview Kadiv/Presidium"
-                          >
-                            <Send className="h-3.5 w-3.5" /> Ajukan Review
-                          </Button>
-                        )}
-
-                        {/* Preview published public article */}
-                        {art.status === 'PUBLISHED' && (
-                          <Link href={`/artikel/${art.slug}`} target="_blank">
-                            <Button size="icon" variant="ghost" title="Lihat di Web Publik">
-                              <ExternalLink className="h-4 w-4 text-ink-muted" />
-                            </Button>
-                          </Link>
-                        )}
-
-                        {/* Edit Button */}
-                        {canEdit && (
-                          <Link href={`/dashboard/artikel/${art.id}/edit`}>
-                            <Button size="icon" variant="ghost" title="Edit Artikel">
-                              <Pencil className="h-4 w-4 text-ink-muted hover:text-ink" />
-                            </Button>
-                          </Link>
-                        )}
-
-                        {/* Unpublish */}
-                        {canUnpub && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            title="Tarik Publikasi (Kembalikan ke Draf)"
-                            onClick={() => setUnpublishConfirm({ open: true, article: art })}
-                          >
-                            <XCircle className="h-4 w-4 text-amber-600" />
-                          </Button>
-                        )}
-
-                        {/* Delete */}
-                        {canDelete && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            title="Hapus Artikel"
-                            className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                            onClick={() => setDeleteConfirm({ open: true, article: art })}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    )}
+      <ArtikelList
+        articles={filteredArticles}
+        user={user}
+        isQueueTab={filterTab === 'QUEUE'}
+        onCreateNew={() => router.push('/dashboard/artikel/baru')}
+        onReview={(article, decision) =>
+          setReviewModal({ open: true, article, decision, note: '', busy: false })
+        }
+        onSubmitDraft={handleSubmitDraft}
+        onUnpublish={(article) => setUnpublishConfirm({ open: true, article })}
+        onDelete={(article) => setDeleteConfirm({ open: true, article })}
+      />
 
       {/* Review Modal */}
       <Modal
@@ -631,7 +289,7 @@ export function ArtikelClient({ user, initialArticles }: ArtikelClientProps) {
         title="Tarik Publikasi Artikel?"
         description={
           <>
-            Artikel <strong>"{unpublishConfirm.article?.title}"</strong> akan ditarik dari portal publik
+            Artikel <strong>&ldquo;{unpublishConfirm.article?.title}&rdquo;</strong> akan ditarik dari portal publik
             dan dikembalikan ke status <strong>Draf</strong>. Artikel tidak lagi dapat diakses oleh pengunjung umum.
           </>
         }
@@ -647,7 +305,7 @@ export function ArtikelClient({ user, initialArticles }: ArtikelClientProps) {
         title="Hapus Artikel?"
         description={
           <>
-            Apakah Anda yakin ingin menghapus artikel <strong>"{deleteConfirm.article?.title}"</strong>?
+            Apakah Anda yakin ingin menghapus artikel <strong>&ldquo;{deleteConfirm.article?.title}&rdquo;</strong>?
             Tindakan ini tidak dapat dibatalkan.
           </>
         }

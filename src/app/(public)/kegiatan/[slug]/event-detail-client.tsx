@@ -8,12 +8,12 @@ import { OFFICIAL_DIVISIONS } from '@/lib/constants/divisions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Textarea } from '@/components/ui/form-controls';
 import { TurnstileWidget, isTurnstileClientEnabled } from '@/components/shared/turnstile-widget';
+import { apiFetch } from '@/lib/api-client';
 import { toast } from 'sonner';
 import {
   Calendar,
-  Clock,
   MapPin,
   Users,
   CheckCircle2,
@@ -105,10 +105,9 @@ export function EventDetailClient({ event }: EventDetailClientProps) {
 
     try {
       setSubmitting(true);
-      const res = await fetch(`/api/events/${event.id}/register`, {
+      await apiFetch(`/api/events/${event.id}/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           full_name: fullName.trim(),
           email: email.trim().toLowerCase(),
           nim: nim.trim(),
@@ -118,13 +117,8 @@ export function EventDetailClient({ event }: EventDetailClientProps) {
           notes: notes.trim() || undefined,
           turnstile_token: turnstileToken || undefined,
           company_website: companyWebsite || undefined,
-        }),
+        },
       });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Pendaftaran gagal.');
-      }
 
       toast.success('Pendaftaran Anda berhasil dicatat!');
       setRegisteredSuccess(true);

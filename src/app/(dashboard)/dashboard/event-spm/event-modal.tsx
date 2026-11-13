@@ -2,22 +2,17 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Textarea } from '@/components/ui/form-controls';
 import { Label } from '@/components/ui/label';
+import { apiFetch } from '@/lib/api-client';
 import { toast } from 'sonner';
-import { EventAndSpm, Period, UserProfile } from '@/types';
+import { DivisionCode, EventAndSpm, Period, UserProfile } from '@/types';
 import { OFFICIAL_DIVISIONS } from '@/lib/constants/divisions';
 import { isPresidiumUp } from '@/lib/auth/permissions';
-import { Calendar, Users, FileSpreadsheet, ExternalLink, Loader2 } from 'lucide-react';
+import { Users, FileSpreadsheet, ExternalLink, Loader2 } from 'lucide-react';
 import { ImageUrlInput } from '@/components/shared/image-inputs';
 
 interface EventModalProps {
@@ -37,82 +32,91 @@ export function EventModal({
   periods,
   onSuccess,
 }: EventModalProps) {
+  return (
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title={eventToEdit ? 'Edit Kegiatan & SPM' : 'Buat Kegiatan / SPM Baru'}
+      size="lg"
+    >
+      {open ? (
+        <EventModalForm
+          key={eventToEdit?.id ?? 'new'}
+          eventToEdit={eventToEdit}
+          user={user}
+          periods={periods}
+          onClose={() => onOpenChange(false)}
+          onSuccess={onSuccess}
+        />
+      ) : null}
+    </Modal>
+  );
+}
+
+function EventModalForm({
+  eventToEdit,
+  user,
+  periods,
+  onClose,
+  onSuccess,
+}: {
+  eventToEdit?: EventAndSpm | null;
+  user: UserProfile;
+  periods: Period[];
+  onClose: () => void;
+  onSuccess?: () => void;
+}) {
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
 
   const isPresidium = isPresidiumUp(user);
   const userDivision = user.division_code;
+  const defaultPeriodId = periods.find((p) => p.is_current)?.id || periods[0]?.id || '';
 
-  // Form State
-  const [title, setTitle] = React.useState('');
-  const [slug, setSlug] = React.useState('');
-  const [description, setDescription] = React.useState('');
-  const [category, setCategory] = React.useState<'SPM' | 'EVENT'>('SPM');
-  const [spmLevel, setSpmLevel] = React.useState<'Level 1' | 'Level 2' | 'Level 3'>('Level 1');
-  const [divisionCode, setDivisionCode] = React.useState(userDivision || 'EDUKASI');
-  const [periodId, setPeriodId] = React.useState(periods.find((p) => p.is_current)?.id || periods[0]?.id || '');
-  const [bannerUrl, setBannerUrl] = React.useState('');
-  const [locationType, setLocationType] = React.useState<'ONLINE' | 'OFFLINE' | 'HYBRID'>('ONLINE');
-  const [locationDetail, setLocationDetail] = React.useState('');
-  const [eventDate, setEventDate] = React.useState('');
-  const [regDeadline, setRegDeadline] = React.useState('');
-  const [quota, setQuota] = React.useState<number>(100);
-  const [regMode, setRegMode] = React.useState<'INTERNAL_FORM' | 'EXTERNAL_GFORM'>('INTERNAL_FORM');
-  const [externalGformUrl, setExternalGformUrl] = React.useState('');
-  const [spreadsheetId, setSpreadsheetId] = React.useState('');
-  const [sheetTabName, setSheetTabName] = React.useState('Pendaftar');
-  const [status, setStatus] = React.useState<'OPEN' | 'DRAFT' | 'CLOSED' | 'COMPLETED'>('OPEN');
-  const [isPublished, setIsPublished] = React.useState(true);
-
-  // Sinkronkan form saat modal dibuka atau saat eventToEdit berubah
-  React.useEffect(() => {
-    if (eventToEdit) {
-      setTitle(eventToEdit.title || '');
-      setSlug(eventToEdit.slug || '');
-      setDescription(eventToEdit.description || '');
-      setCategory(eventToEdit.category || (eventToEdit.category_type === 'SPM' ? 'SPM' : 'EVENT'));
-      setSpmLevel((eventToEdit.spm_level as any) || 'Level 1');
-      setDivisionCode(eventToEdit.division_code || 'EDUKASI');
-      setPeriodId(eventToEdit.period_id || periods[0]?.id || '');
-      setBannerUrl(eventToEdit.banner_url || eventToEdit.poster_url || '');
-      setLocationType(eventToEdit.location_type || 'ONLINE');
-      setLocationDetail(eventToEdit.location_detail || eventToEdit.location_or_link || '');
-      setEventDate(eventToEdit.event_date ? eventToEdit.event_date.slice(0, 16) : '');
-      setRegDeadline(eventToEdit.registration_deadline ? eventToEdit.registration_deadline.slice(0, 16) : '');
-      setQuota(eventToEdit.quota || 100);
-      setRegMode(eventToEdit.registration_mode || 'INTERNAL_FORM');
-      setExternalGformUrl(eventToEdit.external_gform_url || eventToEdit.gform_url || '');
-      setSpreadsheetId(eventToEdit.spreadsheet_id || '');
-      setSheetTabName(eventToEdit.sheet_tab_name || 'Pendaftar');
-      setStatus(eventToEdit.status || 'OPEN');
-      setIsPublished(eventToEdit.is_published ?? true);
-    } else {
-      // Default baru
-      setTitle('');
-      setSlug('');
-      setDescription('');
-      const defaultCat = userDivision === 'EDUKASI' ? 'SPM' : 'EVENT';
-      setCategory(defaultCat);
-      setSpmLevel('Level 1');
-      setDivisionCode(userDivision || 'KEGIATAN');
-      setPeriodId(periods.find((p) => p.is_current)?.id || periods[0]?.id || '');
-      setBannerUrl('/gambar/artikel/dummy.jpg');
-      setLocationType('ONLINE');
-      setLocationDetail('Zoom Meeting GIBEI UNIMED');
-      
-      const inTwoWeeks = new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString().slice(0, 16);
-      const inTwelveDays = new Date(Date.now() + 12 * 24 * 3600 * 1000).toISOString().slice(0, 16);
-      setEventDate(inTwoWeeks);
-      setRegDeadline(inTwelveDays);
-      setQuota(100);
-      setRegMode('INTERNAL_FORM');
-      setExternalGformUrl('');
-      setSpreadsheetId('');
-      setSheetTabName('Pendaftar');
-      setStatus('OPEN');
-      setIsPublished(true);
-    }
-  }, [eventToEdit, open, periods, userDivision]);
+  // Form State initialized cleanly from props when modal mounts
+  const [title, setTitle] = React.useState(() => eventToEdit?.title || '');
+  const [slug, setSlug] = React.useState(() => eventToEdit?.slug || '');
+  const [description, setDescription] = React.useState(() => eventToEdit?.description || '');
+  const [category, setCategory] = React.useState<'SPM' | 'EVENT'>(() =>
+    eventToEdit ? eventToEdit.category || (eventToEdit.category_type === 'SPM' ? 'SPM' : 'EVENT') : userDivision === 'EDUKASI' ? 'SPM' : 'EVENT'
+  );
+  const [spmLevel, setSpmLevel] = React.useState<string>(() => eventToEdit?.spm_level || 'Level 1');
+  const [divisionCode, setDivisionCode] = React.useState<DivisionCode>(() =>
+    eventToEdit ? eventToEdit.division_code || 'EDUKASI' : userDivision || 'KEGIATAN'
+  );
+  const [periodId, setPeriodId] = React.useState(() => eventToEdit?.period_id || defaultPeriodId);
+  const [bannerUrl, setBannerUrl] = React.useState(() =>
+    eventToEdit ? eventToEdit.banner_url || eventToEdit.poster_url || '' : '/gambar/artikel/dummy.jpg'
+  );
+  const [locationType, setLocationType] = React.useState<'ONLINE' | 'OFFLINE' | 'HYBRID'>(
+    () => eventToEdit?.location_type || 'ONLINE'
+  );
+  const [locationDetail, setLocationDetail] = React.useState(() =>
+    eventToEdit ? eventToEdit.location_detail || eventToEdit.location_or_link || '' : 'Zoom Meeting GIBEI UNIMED'
+  );
+  const [eventDate, setEventDate] = React.useState(() =>
+    eventToEdit?.event_date
+      ? eventToEdit.event_date.slice(0, 16)
+      : new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString().slice(0, 16)
+  );
+  const [regDeadline, setRegDeadline] = React.useState(() =>
+    eventToEdit?.registration_deadline
+      ? eventToEdit.registration_deadline.slice(0, 16)
+      : new Date(Date.now() + 12 * 24 * 3600 * 1000).toISOString().slice(0, 16)
+  );
+  const [quota, setQuota] = React.useState<number>(() => eventToEdit?.quota || 100);
+  const [regMode, setRegMode] = React.useState<'INTERNAL_FORM' | 'EXTERNAL_GFORM'>(
+    () => eventToEdit?.registration_mode || 'INTERNAL_FORM'
+  );
+  const [externalGformUrl, setExternalGformUrl] = React.useState(
+    () => eventToEdit?.external_gform_url || eventToEdit?.gform_url || ''
+  );
+  const [spreadsheetId, setSpreadsheetId] = React.useState(() => eventToEdit?.spreadsheet_id || '');
+  const [sheetTabName, setSheetTabName] = React.useState(() => eventToEdit?.sheet_tab_name || 'Pendaftar');
+  const [status, setStatus] = React.useState<'OPEN' | 'DRAFT' | 'CLOSED' | 'COMPLETED'>(
+    () => eventToEdit?.status || 'OPEN'
+  );
+  const [isPublished, setIsPublished] = React.useState(() => eventToEdit?.is_published ?? true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,19 +163,10 @@ export function EventModal({
       const url = eventToEdit ? `/api/events/${eventToEdit.id}` : '/api/events';
       const method = eventToEdit ? 'PATCH' : 'POST';
 
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Gagal menyimpan kegiatan.');
-      }
+      await apiFetch(url, { method, body: payload });
 
       toast.success(eventToEdit ? 'Kegiatan berhasil diperbarui.' : 'Kegiatan baru berhasil dibuat.');
-      onOpenChange(false);
+      onClose();
       router.refresh();
       if (onSuccess) onSuccess();
     } catch (err: unknown) {
@@ -183,16 +178,7 @@ export function EventModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl font-bold text-foreground">
-            <Calendar className="w-5 h-5 text-primary" />
-            {eventToEdit ? 'Edit Kegiatan & SPM' : 'Buat Kegiatan / SPM Baru'}
-          </DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-6 pt-2">
+      <form onSubmit={handleSubmit} className="space-y-6 pt-1">
           {/* Baris 1: Kategori & Tingkat SPM */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-secondary/30 border border-border">
             <div className="space-y-1.5">
@@ -218,7 +204,7 @@ export function EventModal({
                 <Label className="text-xs font-semibold text-foreground">Level SPM</Label>
                 <select
                   value={spmLevel}
-                  onChange={(e) => setSpmLevel(e.target.value as any)}
+                  onChange={(e) => setSpmLevel(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl text-sm bg-white border border-border focus:ring-2 focus:ring-primary focus:outline-none"
                 >
                   <option value="Level 1">Level 1 — Pengenalan Investasi</option>
@@ -233,7 +219,7 @@ export function EventModal({
                 <select
                   value={divisionCode}
                   disabled={!isPresidium && !!userDivision}
-                  onChange={(e) => setDivisionCode(e.target.value as any)}
+                  onChange={(e) => setDivisionCode(e.target.value as DivisionCode)}
                   className="w-full px-3 py-2 rounded-xl text-sm bg-white border border-border focus:ring-2 focus:ring-primary focus:outline-none disabled:bg-muted"
                 >
                   {Object.values(OFFICIAL_DIVISIONS).map((div) => (
@@ -303,7 +289,7 @@ export function EventModal({
               <Label className="text-xs font-semibold text-foreground">Tipe Lokasi</Label>
               <select
                 value={locationType}
-                onChange={(e) => setLocationType(e.target.value as any)}
+                onChange={(e) => setLocationType(e.target.value as 'ONLINE' | 'OFFLINE' | 'HYBRID')}
                 className="w-full px-3 py-2 rounded-xl text-sm bg-white border border-border focus:ring-2 focus:ring-primary focus:outline-none"
               >
                 <option value="ONLINE">Online (Daring)</option>
@@ -459,7 +445,7 @@ export function EventModal({
               <Label className="text-xs font-semibold text-foreground">Status Pendaftaran</Label>
               <select
                 value={status}
-                onChange={(e) => setStatus(e.target.value as any)}
+                onChange={(e) => setStatus(e.target.value as EventAndSpm['status'])}
                 className="w-full px-3 py-2 rounded-xl text-sm bg-white border border-border focus:ring-2 focus:ring-primary focus:outline-none"
               >
                 <option value="OPEN">OPEN (Pendaftaran Dibuka)</option>
@@ -483,11 +469,11 @@ export function EventModal({
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 pt-4 border-t border-border">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-4 border-t border-line">
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={onClose}
               disabled={loading}
             >
               Batal
@@ -508,10 +494,8 @@ export function EventModal({
                 'Terbitkan Kegiatan'
               )}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
-      </DialogContent>
-    </Dialog>
   );
 }
 

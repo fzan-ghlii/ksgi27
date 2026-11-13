@@ -4,6 +4,7 @@ import { errorResponse, readJson, RouteCtx } from '@/lib/api/route';
 import { updateUserRoleAndDivision } from '@/lib/data/system';
 import { z } from 'zod';
 import { DIVISION_CODES } from '@/lib/constants/divisions';
+import type { Role } from '@/types';
 
 const UserOverrideSchema = z.object({
   role: z.enum(['CREATOR', 'PRESIDIUM', 'KADIV', 'USER', 'creator', 'presidium', 'kadiv', 'member', 'public']).optional(),
@@ -18,17 +19,14 @@ export async function PATCH(req: Request, ctx: RouteCtx<{ uid: string }>) {
     const input = await readJson(req, UserOverrideSchema);
 
     // Normalisasi role ke format sistem jika perlu
-    let targetRole = input.role;
-    if (targetRole) {
-      const upper = targetRole.toUpperCase();
-      if (upper === 'MEMBER') targetRole = 'USER';
-      else targetRole = upper as any;
-    }
+    const normalizedRole = input.role
+      ? ((input.role.toUpperCase() === 'MEMBER' ? 'USER' : input.role.toUpperCase()) as Role)
+      : undefined;
 
     const updated = await updateUserRoleAndDivision(
       uid,
       {
-        role: targetRole as any,
+        role: normalizedRole,
         division_code: input.division_code,
         is_active: input.is_active,
       },

@@ -1,30 +1,28 @@
 import Link from 'next/link';
-import { Target, Compass, CheckCircle2, History, ArrowRight, Sparkles, Building, Layers } from 'lucide-react';
+import { History, ArrowRight, Sparkles, Trophy, Award, Building2 } from 'lucide-react';
 import { DIVISION_LIST } from '@/lib/constants/divisions';
+import { getPublicAchievements } from '@/lib/data/public';
 import { Button } from '@/components/ui/button';
+import { PublicPageHeader } from '@/components/public/page-header';
 import { GibeiLogo } from '@/components/shared/logo';
+
+export const revalidate = 60;
 
 export const metadata = {
   title: 'Tentang Organisasi | GIBEI UNIMED',
-  description: 'Profil, visi dan misi tetap, serta 6 divisi resmi Galeri Investasi BEI Universitas Negeri Medan.',
+  description: 'Profil organisasi, 6 divisi resmi, serta prestasi Galeri Investasi BEI Universitas Negeri Medan.',
 };
 
-export default function TentangPage() {
+export default async function TentangPage() {
+  const achievements = await getPublicAchievements();
   return (
     <div className="py-12 sm:py-16 bg-background">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl space-y-16 sm:space-y-20">
-        {/* Header Title */}
-        <div className="max-w-3xl space-y-3">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cerulean-light text-cerulean-dark text-xs font-bold uppercase tracking-wider border border-cerulean/20">
-            Profil Organisasi
-          </div>
-          <h1 className="text-3xl sm:text-5xl font-black text-ink tracking-tight">
-            Tentang GIBEI UNIMED
-          </h1>
-          <p className="text-base sm:text-lg text-ink-muted leading-relaxed">
-            Galeri Investasi Bursa Efek Indonesia Universitas Negeri Medan (GIBEI UNIMED) adalah laboratorium edukasi dan pusat literasi pasar modal yang didirikan atas kerja sama tripartit antara PT Bursa Efek Indonesia, Perusahaan Sekuritas Mitra, dan Fakultas Ekonomi Universitas Negeri Medan.
-          </p>
-        </div>
+        <PublicPageHeader
+          badge="Profil Organisasi"
+          title="Tentang GIBEI UNIMED"
+          description="Galeri Investasi Bursa Efek Indonesia Universitas Negeri Medan (GIBEI UNIMED) adalah laboratorium edukasi dan pusat literasi pasar modal yang didirikan atas kerja sama tripartit antara PT Bursa Efek Indonesia, Perusahaan Sekuritas Mitra, dan Fakultas Ekonomi Universitas Negeri Medan."
+        />
 
         {/* Banner Link ke Sejarah & Makna Logo */}
         <div className="rounded-3xl border border-cerulean/30 bg-gradient-to-r from-cerulean-light/50 via-white to-cyan-light/30 p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 shadow-sm">
@@ -44,61 +42,13 @@ export default function TentangPage() {
             </div>
           </div>
 
-          <Link href="/sejarah" className="shrink-0 w-full sm:w-auto">
+          <Link href="/sejarah#visi-misi" className="shrink-0 w-full sm:w-auto">
             <Button variant="cerulean" className="w-full sm:w-auto gap-2 font-bold shadow-sm">
               <History className="h-4 w-4" />
-              Buka Halaman Sejarah & Logo
+              Lihat Sejarah, Logo &amp; Visi Misi
               <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
-        </div>
-
-        {/* Vision & Mission Card (Visi & Misi Tetap GIBEI UNIMED) */}
-        <div className="rounded-3xl border border-line bg-surface/60 p-8 sm:p-12 space-y-8">
-          <div className="flex items-center justify-between pb-4 border-b border-line flex-wrap gap-2">
-            <div className="flex items-center gap-2.5">
-              <Target className="h-6 w-6 text-cerulean" />
-              <h2 className="text-2xl font-extrabold text-ink">
-                Visi & Misi Tetap GIBEI UNIMED
-              </h2>
-            </div>
-            <span className="text-xs font-bold text-cerulean-dark bg-white px-3 py-1 rounded-full border border-line">
-              Landasan Permanen Organisasi
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Vision */}
-            <div className="bento-card p-6 bg-white border border-line space-y-3">
-              <span className="text-xs font-bold uppercase text-cerulean-dark tracking-wider">
-                Visi Organisasi
-              </span>
-              <p className="text-base text-ink font-semibold leading-relaxed">
-                "Menjadi Galeri Investasi Bursa Efek Indonesia terdepan, unggul, dan berdaya saing nasional dalam memajukan literasi serta inklusi pasar modal di lingkungan civitas akademika Universitas Negeri Medan dan masyarakat umum, berlandaskan integritas, profesionalisme, dan inovasi berkelanjutan."
-              </p>
-            </div>
-
-            {/* Mission List */}
-            <div className="bento-card p-6 bg-white border border-line lg:col-span-2 space-y-3">
-              <span className="text-xs font-bold uppercase text-cerulean-dark tracking-wider">
-                Misi Strategis Tetap
-              </span>
-              <ul className="space-y-3.5 pt-1">
-                {[
-                  'Menyelenggarakan Sekolah Pasar Modal (SPM) berjenjang (Level 1 Pengenalan Investasi, Level 2 Belajar Saham, serta Level Lanjutan Analisis Fundamental & Teknikal) secara berkala dan berkualitas.',
-                  'Memfasilitasi pembukaan Rekening Dana Nasabah (RDN) dan membina investor muda di kalangan mahasiswa agar mampu berinvestasi secara rasional, etis, dan mandiri.',
-                  'Membangun budaya riset pasar modal yang mendalam, independen, dan aplikatif melalui analisis emiten dan publikasi edukasi berkala.',
-                  'Menjalin kemitraan strategis yang solid dan berkesinambungan dengan PT Bursa Efek Indonesia, Perusahaan Sekuritas Mitra, dan industri keuangan.',
-                  'Mengembangkan tata kelola organisasi internal yang transparan, modern, profesional, dan berbasis teknologi digital.',
-                ].map((m, idx) => (
-                  <li key={idx} className="flex items-start gap-3 text-sm text-ink-muted">
-                    <CheckCircle2 className="h-4 w-4 text-cyan shrink-0 mt-0.5" />
-                    <span>{m}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
         </div>
 
         {/* 6 Divisions Focus Areas */}
@@ -127,6 +77,92 @@ export default function TentangPage() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Prestasi GIBEI UNIMED (Dinamis dari Firestore, dikelola Presidium) */}
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+            <div>
+              <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#7a6026] uppercase tracking-wider mb-1">
+                <Trophy className="h-4 w-4 text-gold" />
+                Rekam Jejak Keunggulan
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-ink">
+                Prestasi GIBEI UNIMED
+              </h2>
+              <p className="text-sm text-ink-muted mt-1">
+                Penghargaan, capaian nasional maupun regional, dan dedikasi mahasiswa GIBEI UNIMED di pasar modal Indonesia.
+              </p>
+            </div>
+          </div>
+
+          {achievements.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-line bg-surface/50 p-10 text-center space-y-2">
+              <div className="h-12 w-12 rounded-2xl bg-gold-light text-[#7a6026] border border-gold/30 flex items-center justify-center mx-auto">
+                <Trophy className="h-6 w-6 text-gold" />
+              </div>
+              <h3 className="text-base font-bold text-ink">Daftar Prestasi Sedang Diperbarui</h3>
+              <p className="text-xs sm:text-sm text-ink-muted max-w-md mx-auto">
+                Presidium GIBEI UNIMED sedang mengkurasi dokumentasi penghargaan dan prestasi organisasi.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {achievements.map((item) => (
+                <div
+                  key={item.id}
+                  className="bento-card bg-white border border-line overflow-hidden flex flex-col justify-between"
+                >
+                  <div>
+                    {item.image_url ? (
+                      <div className="h-44 bg-surface border-b border-line overflow-hidden relative">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={item.image_url}
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                        />
+                        <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-bold bg-gold text-ink shadow-xs">
+                          {item.year}
+                        </span>
+                      </div>
+                    ) : null}
+
+                    <div className="p-6 space-y-2.5">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-cerulean-light text-cerulean-dark border border-cerulean/20">
+                          <Award className="h-3 w-3" />
+                          {item.level}
+                        </span>
+                        {!item.image_url && (
+                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-gold-light text-[#66532d] border border-gold/30">
+                            {item.year}
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className="text-lg font-bold text-ink leading-snug">{item.title}</h3>
+
+                      {item.category && (
+                        <p className="text-xs font-semibold text-cerulean-dark">{item.category}</p>
+                      )}
+
+                      <div className="flex items-center gap-1.5 text-xs text-ink-muted">
+                        <Building2 className="h-3.5 w-3.5 shrink-0" />
+                        <span>{item.organizer}</span>
+                      </div>
+
+                      {item.description && (
+                        <p className="text-xs text-ink-muted leading-relaxed pt-1">
+                          {item.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

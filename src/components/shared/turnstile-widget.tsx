@@ -45,7 +45,9 @@ export function TurnstileWidget({
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const widgetIdRef = React.useRef<TurnstileWidgetId | null>(null);
   const onTokenChangeRef = React.useRef(onTokenChange);
-  onTokenChangeRef.current = onTokenChange;
+  React.useEffect(() => {
+    onTokenChangeRef.current = onTokenChange;
+  }, [onTokenChange]);
 
   const renderWidget = React.useCallback(() => {
     if (!SITE_KEY || !containerRef.current || !window.turnstile) return;

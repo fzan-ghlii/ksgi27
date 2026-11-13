@@ -1,18 +1,18 @@
 import Link from 'next/link';
 import { 
   ArrowRight, 
-  TrendingUp, 
   ShieldCheck, 
   Award, 
   BookOpen, 
   Sparkles, 
   Newspaper, 
   Camera, 
-  Clock 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BentoGrid } from '@/components/public/bento-grid';
 import { EventCard } from '@/components/public/event-card';
+import { ArticleCard } from '@/components/public/article-card';
+import { GalleryCard } from '@/components/public/gallery-card';
 import { HeroBackgroundCarousel } from '@/components/public/hero-background-carousel';
 import { 
   getPublicEventsAndSpm, 
@@ -20,9 +20,6 @@ import {
   getPublishedGalleries,
   getPublicHeroCarousel,
 } from '@/lib/data/public';
-import { markdownExcerpt } from '@/lib/utils/content';
-import { formatDate } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
 
 export default async function HomePage() {
   const [events, articles, galleries, heroCarousel] = await Promise.all([
@@ -76,9 +73,9 @@ export default async function HomePage() {
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
-              <Link href="/tentang" className="w-full sm:w-auto">
+              <Link href="/sejarah#visi-misi" className="w-full sm:w-auto">
                 <Button variant="outline" size="lg" className="w-full sm:w-auto text-base hover:border-cerulean">
-                  Pelajari Visi & Misi
+                  Pelajari Visi &amp; Misi
                 </Button>
               </Link>
             </div>
@@ -135,108 +132,8 @@ export default async function HomePage() {
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div className="bento-card p-6 flex flex-col justify-between bg-white border border-line">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-gold-light text-[#8c6f05] border border-gold/30">
-                      SPM LEVEL 1
-                    </span>
-                    <span className="text-[11px] font-semibold text-ink-muted">DIVISI EDUKASI</span>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-ink">
-                      Sekolah Pasar Modal: Pengenalan Saham & RDN
-                    </h3>
-                    <p className="text-xs text-ink-muted mt-1.5 leading-relaxed">
-                      Edukasi mendasar mengenai mekanisme bursa saham Indonesia, legalitas investasi, dan pembukaan rekening efek perdana.
-                    </p>
-                  </div>
-                  <div className="space-y-1.5 pt-2">
-                    <div className="flex justify-between text-xs font-semibold">
-                      <span>Kuota Peserta</span>
-                      <span className="font-bold text-cerulean-dark">35 / 50 (70%)</span>
-                    </div>
-                    <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden border border-line">
-                      <div className="h-full bg-gradient-to-r from-cyan to-cerulean w-[70%]" />
-                    </div>
-                  </div>
-                </div>
-                <div className="pt-6 mt-4 border-t border-line flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-700">Dibuka</span>
-                  <Link href="/kegiatan">
-                    <Button variant="gold" size="sm">Daftar Sekarang</Button>
-                  </Link>
-                </div>
-              </div>
-
-              <div className="bento-card p-6 flex flex-col justify-between bg-white border border-line">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-cerulean-light text-cerulean-dark border border-cerulean/30">
-                      SEMINAR NASIONAL
-                    </span>
-                    <span className="text-[11px] font-semibold text-ink-muted">DIVISI KEGIATAN</span>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-ink">
-                      Investment Outlook: Peluang Saham Blue Chip
-                    </h3>
-                    <p className="text-xs text-ink-muted mt-1.5 leading-relaxed">
-                      Kupas tuntas arah ekonomi makro dan strategi diversifikasi portofolio menghadapi volatilitas pasar global.
-                    </p>
-                  </div>
-                  <div className="space-y-1.5 pt-2">
-                    <div className="flex justify-between text-xs font-semibold">
-                      <span>Kuota Peserta</span>
-                      <span className="font-bold text-cerulean-dark">120 / 150 (80%)</span>
-                    </div>
-                    <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden border border-line">
-                      <div className="h-full bg-gradient-to-r from-cyan to-cerulean w-[80%]" />
-                    </div>
-                  </div>
-                </div>
-                <div className="pt-6 mt-4 border-t border-line flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-700">Dibuka</span>
-                  <Link href="/kegiatan">
-                    <Button variant="gold" size="sm">Daftar Sekarang</Button>
-                  </Link>
-                </div>
-              </div>
-
-              <div className="bento-card p-6 flex flex-col justify-between bg-white border border-line">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-gold-light text-[#66532d] border border-gold/30">
-                      SPM LEVEL 2
-                    </span>
-                    <span className="text-[11px] font-semibold text-ink-muted">DIVISI EDUKASI</span>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-ink">
-                      Workshop Analisis Laporan Keuangan Emiten
-                    </h3>
-                    <p className="text-xs text-ink-muted mt-1.5 leading-relaxed">
-                      Pelatihan mendalam bedah rasio profitabilitas, solvabilitas, dan arus kas emiten sektor perbankan & konsumer.
-                    </p>
-                  </div>
-                  <div className="space-y-1.5 pt-2">
-                    <div className="flex justify-between text-xs font-semibold">
-                      <span>Kuota Peserta</span>
-                      <span className="font-bold text-cerulean-dark">20 / 40 (50%)</span>
-                    </div>
-                    <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden border border-line">
-                      <div className="h-full bg-gradient-to-r from-cyan to-cerulean w-[50%]" />
-                    </div>
-                  </div>
-                </div>
-                <div className="pt-6 mt-4 border-t border-line flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-700">Dibuka</span>
-                  <Link href="/kegiatan">
-                    <Button variant="gold" size="sm">Daftar Sekarang</Button>
-                  </Link>
-                </div>
-              </div>
+            <div className="p-8 rounded-2xl bg-white border border-line text-center text-xs text-ink-muted">
+              Jadwal kegiatan dan Sekolah Pasar Modal (SPM) akan segera diumumkan.
             </div>
           )}
         </div>
@@ -268,64 +165,7 @@ export default async function HomePage() {
           {articles.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {articles.map((art) => (
-                <article
-                  key={art.id}
-                  className="bento-card overflow-hidden flex flex-col justify-between bg-white border border-line hover:border-cerulean transition-all shadow-xs group"
-                >
-                  <div>
-                    <Link href={`/artikel/${art.slug}`} className="block relative h-44 bg-slate-100 overflow-hidden">
-                      {art.thumbnail_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={art.thumbnail_url}
-                          alt={art.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-cerulean/10 to-cyan/10 text-cerulean">
-                          <BookOpen className="h-8 w-8 opacity-40" />
-                        </div>
-                      )}
-                      <div className="absolute top-3 left-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/95 text-cerulean-dark border border-line">
-                          {art.category}
-                        </span>
-                      </div>
-                    </Link>
-
-                    <div className="p-5 space-y-2">
-                      <div className="flex items-center gap-2 text-[11px] text-ink-muted">
-                        <span>{formatDate(art.published_at)}</span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" /> {art.reading_minutes || 1} mnt
-                        </span>
-                      </div>
-
-                      <Link href={`/artikel/${art.slug}`}>
-                        <h3 className="font-bold text-base text-ink line-clamp-2 hover:text-cerulean-dark transition-colors leading-snug">
-                          {art.title}
-                        </h3>
-                      </Link>
-
-                      <p className="text-xs text-ink-muted line-clamp-2 leading-relaxed">
-                        {markdownExcerpt(art.content, 120)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="px-5 py-3 border-t border-line/60 bg-surface/30 flex items-center justify-between text-xs">
-                    <span className="text-ink-muted text-[11px] truncate max-w-[130px]">
-                      Oleh <strong>{art.author_name}</strong>
-                    </span>
-                    <Link
-                      href={`/artikel/${art.slug}`}
-                      className="font-bold text-cerulean-dark hover:text-cerulean inline-flex items-center gap-1"
-                    >
-                      Baca <ArrowRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </div>
-                </article>
+                <ArticleCard key={art.id} article={art} excerptLength={120} imageHeightClass="h-44" />
               ))}
             </div>
           ) : (
@@ -362,38 +202,7 @@ export default async function HomePage() {
           {galleries.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {galleries.map((gal) => (
-                <Link
-                  key={gal.id}
-                  href="/galeri"
-                  className="bento-card overflow-hidden bg-white border border-line hover:border-cerulean transition-all shadow-xs group block"
-                >
-                  <div className="relative h-44 bg-slate-100 overflow-hidden">
-                    {gal.image_urls[0] ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={gal.image_urls[0]}
-                        alt={gal.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="h-full flex items-center justify-center text-slate-400">
-                        <Camera className="h-8 w-8" />
-                      </div>
-                    )}
-                    <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-ink/75 text-white text-[10px] font-semibold">
-                      {gal.image_urls.length} foto
-                    </div>
-                  </div>
-                  <div className="p-4 space-y-1">
-                    <Badge variant="cerulean" className="text-[9px] py-0 px-1.5">
-                      {gal.division_code}
-                    </Badge>
-                    <h3 className="font-bold text-sm text-ink line-clamp-1 group-hover:text-cerulean-dark transition-colors">
-                      {gal.title}
-                    </h3>
-                    <p className="text-[11px] text-ink-muted">{formatDate(gal.activity_date)}</p>
-                  </div>
-                </Link>
+                <GalleryCard key={gal.id} gallery={gal} />
               ))}
             </div>
           ) : (

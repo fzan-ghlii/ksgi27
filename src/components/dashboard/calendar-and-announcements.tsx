@@ -10,20 +10,17 @@ import {
   ExternalLink,
   MapPin,
   Clock,
-  Sparkles,
   AlertTriangle,
   Pin,
   Loader2,
-  CheckCircle2,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Modal } from '@/components/ui/modal';
-import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/form-controls';
+import { ConfirmDialog, Modal } from '@/components/ui/modal';
 import { Announcement, EventAndSpm, UserProfile } from '@/types';
 import { canManageCalendarAndAnnouncements } from '@/lib/auth/permissions';
+import { apiFetch } from '@/lib/api-client';
 import { formatDate, formatDateTime } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -36,7 +33,7 @@ function formatGCalDate(isoString: string): string {
   }
 }
 
-export function buildGoogleCalendarUrl(event: {
+function buildGoogleCalendarUrl(event: {
   title: string;
   description?: string;
   event_date: string;
@@ -78,6 +75,7 @@ export function CalendarAndAnnouncements({
   const [priority, setPriority] = React.useState<'NORMAL' | 'IMPORTANT' | 'URGENT'>('NORMAL');
   const [eventDate, setEventDate] = React.useState('');
   const [pinned, setPinned] = React.useState(false);
+  const [deleteId, setDeleteId] = React.useState<string | null>(null);
 
   // Filter & sort events by date
   const upcomingEvents = React.useMemo(() => {
@@ -94,20 +92,16 @@ export function CalendarAndAnnouncements({
 
     try {
       setBusy(true);
-      const res = await fetch('/api/announcements', {
+      const data = await apiFetch<{ announcement: Announcement }>('/api/announcements', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           title,
           content,
           priority,
           event_date: eventDate || undefined,
           pinned,
-        }),
+        },
       });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal membuat pengumuman.');
 
       setAnnouncements((prev) => [data.announcement, ...prev]);
       toast.success('Pengumuman berhasil dipublikasikan!');
@@ -124,11 +118,15 @@ export function CalendarAndAnnouncements({
     }
   };
 
-  const handleDeleteAnnouncement = async (id: string) => {
-    if (!confirm('Hapus pengumuman ini?')) return;
+  const handleDeleteAnnouncement = (id: string) => {
+    setDeleteId(id);
+  };
+
+  const confirmDeleteAnnouncement = async () => {
+    if (!deleteId) return;
+    const id = deleteId;
     try {
-      const res = await fetch(`/api/announcements/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Gagal menghapus');
+      await apiFetch(`/api/announcements/${id}`, { method: 'DELETE' });
       setAnnouncements((prev) => prev.filter((a) => a.id !== id));
       toast.success('Pengumuman dihapus.');
     } catch {
@@ -390,7 +388,7 @@ export function CalendarAndAnnouncements({
               <label className="text-xs font-semibold text-ink">Tingkat Prioritas</label>
               <select
                 value={priority}
-                onChange={(e) => setPriority(e.target.value as any)}
+                onChange={(e) => setPriority(e.target.value as 'NORMAL' | 'IMPORTANT' | 'URGENT')}
                 className="w-full px-3 py-2 rounded-xl text-xs bg-white border border-line"
                 disabled={busy}
               >
@@ -448,6 +446,15 @@ export function CalendarAndAnnouncements({
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        open={!!deleteId}
+        onOpenChange={(o) => !o && setDeleteId(null)}
+        title="Hapus Pengumuman?"
+        description="Pengumuman ini akan dihapus permanen dari papan informasi internal pengurus."
+        confirmLabel="Ya, hapus"
+        onConfirm={confirmDeleteAnnouncement}
+      />
     </div>
   );
 }

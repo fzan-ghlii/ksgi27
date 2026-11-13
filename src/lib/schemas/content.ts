@@ -22,7 +22,7 @@ const divisionCode = z.enum(DIVISION_CODES, { message: 'Divisi tidak valid.' });
 
 // ------------------------------------------------------------------ Periode
 
-export const PERIOD_YEAR_RANGE = /^(\d{4})\/(\d{4})$/;
+const PERIOD_YEAR_RANGE = /^(\d{4})\/(\d{4})$/;
 
 export const PeriodSchema = z.object({
   cabinet_name: z.string().trim().max(80).optional().default(''),

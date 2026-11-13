@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { imageRefSchema } from '@/lib/schemas/content';
 import { isLandscapeAspect } from '@/lib/utils/image-converter';
 
-export const HERO_BLUR_LEVELS = ['soft', 'medium', 'strong'] as const;
+const HERO_BLUR_LEVELS = ['soft', 'medium', 'strong'] as const;
 
 export const HeroCarouselSlideSchema = z
   .object({
@@ -20,8 +20,6 @@ export const HeroCarouselSlideSchema = z
       'Foto carousel hanya diperbolehkan dengan orientasi landscape atau rasio 16:9 (lebar lebih besar dari tinggi).',
     path: ['width'],
   });
-
-export type HeroCarouselSlideInput = z.infer<typeof HeroCarouselSlideSchema>;
 
 export const HeroCarouselUpdateSchema = z.object({
   slides: z

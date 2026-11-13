@@ -1,27 +1,29 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
+import { errorResponse, RouteCtx } from '@/lib/api/route';
+import { badRequest, notFound } from '@/lib/errors';
 import { isSafeDocId } from '@/lib/security/guards';
 
 const SAFE_IMAGE_MIMES = new Set(['image/webp', 'image/png', 'image/jpeg', 'image/avif']);
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: RouteCtx<{ id: string }>
 ) {
   try {
     const { id } = await params;
     if (!isSafeDocId(id)) {
-      return NextResponse.json({ error: 'ID gambar tidak valid.' }, { status: 400 });
+      throw badRequest('ID gambar tidak valid.');
     }
 
     const doc = await adminDb.collection('images').doc(id).get();
     if (!doc.exists) {
-      return NextResponse.json({ error: 'Gambar tidak ditemukan.' }, { status: 404 });
+      throw notFound('Gambar tidak ditemukan.');
     }
 
     const data = doc.data();
     if (!data || typeof data.base64 !== 'string' || !data.base64) {
-      return NextResponse.json({ error: 'Konten gambar tidak valid.' }, { status: 500 });
+      throw new Error('Konten gambar tidak valid.');
     }
 
     const buffer = Buffer.from(data.base64, 'base64');
@@ -41,8 +43,7 @@ export async function GET(
       },
     });
   } catch (err) {
-    console.error('[API Images GET] Error:', err);
-    return NextResponse.json({ error: 'Gagal memuat gambar.' }, { status: 500 });
+    return errorResponse(err);
   }
 }
 

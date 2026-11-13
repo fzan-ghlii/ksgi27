@@ -18,7 +18,7 @@ export async function GET(_req: Request, ctx: RouteCtx<{ id: string }>) {
 
 export async function PATCH(req: Request, ctx: RouteCtx<{ id: string }>) {
   try {
-    const user = await requireUser('admin_kadiv');
+    const user = await requireUser('member');
     const { id } = await ctx.params;
     const input = await readJson(req, EventUpdateSchema);
     const updated = await updateEvent(id, input, user);

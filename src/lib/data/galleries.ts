@@ -13,6 +13,12 @@ import {
 import { GalleryInput } from '@/lib/schemas/content';
 import { badRequest, forbidden, notFound } from '@/lib/errors';
 import { buildAudit } from '@/lib/data/audit';
+import { invalidatePublicCache, revalidatePublicPaths } from '@/lib/data/public';
+
+function invalidateGalleryCaches() {
+  invalidatePublicCache('galleries');
+  revalidatePublicPaths(['/', '/galeri']);
+}
 
 const col = () => adminDb.collection('galleries');
 
@@ -86,6 +92,7 @@ export async function createGallery(actor: UserProfile, input: GalleryInput): Pr
   });
   batch.set(audit.ref, audit.data);
   await batch.commit();
+  if (status === 'PUBLISHED') invalidateGalleryCaches();
   return gallery;
 }
 
@@ -131,6 +138,9 @@ export async function updateGallery(actor: UserProfile, id: string, input: Galle
   });
   batch.set(audit.ref, audit.data);
   await batch.commit();
+  if (g.status === 'PUBLISHED' || status === 'PUBLISHED') {
+    invalidateGalleryCaches();
+  }
 }
 
 export async function approveGallery(actor: UserProfile, id: string): Promise<void> {
@@ -155,6 +165,7 @@ export async function approveGallery(actor: UserProfile, id: string): Promise<vo
   });
   batch.set(audit.ref, audit.data);
   await batch.commit();
+  invalidateGalleryCaches();
 }
 
 export async function unpublishGallery(actor: UserProfile, id: string): Promise<void> {
@@ -183,6 +194,7 @@ export async function unpublishGallery(actor: UserProfile, id: string): Promise<
   });
   batch.set(audit.ref, audit.data);
   await batch.commit();
+  invalidateGalleryCaches();
 }
 
 export async function deleteGallery(actor: UserProfile, id: string): Promise<void> {
@@ -205,5 +217,6 @@ export async function deleteGallery(actor: UserProfile, id: string): Promise<voi
   });
   batch.set(audit.ref, audit.data);
   await batch.commit();
+  if (g.status === 'PUBLISHED') invalidateGalleryCaches();
 }
 

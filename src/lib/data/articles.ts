@@ -1,5 +1,5 @@
 import 'server-only';
-import type { Query, Transaction } from 'firebase-admin/firestore';
+import type { Query } from 'firebase-admin/firestore';
 import { adminDb } from '@/lib/firebase/admin';
 import type { Article, ArticleStatus, DivisionCode, UserProfile } from '@/types';
 import { divisionDocId } from '@/lib/constants/divisions';
@@ -18,8 +18,15 @@ import { ARTICLE_MIN_CONTENT, ArticleInput, ArticleReviewInput } from '@/lib/sch
 import { readingMinutes, slugify } from '@/lib/utils/content';
 import { badRequest, forbidden, notFound } from '@/lib/errors';
 import { buildAudit } from '@/lib/data/audit';
+import { invalidatePublicCache, revalidatePublicPaths } from '@/lib/data/public';
+import { ensureUniqueSlug } from '@/lib/data/slug';
 
 const col = () => adminDb.collection('articles');
+
+function invalidateArticleCaches(slug?: string) {
+  invalidatePublicCache('articles');
+  revalidatePublicPaths(['/', '/artikel', ...(slug ? [`/artikel/${slug}`] : [])]);
+}
 
 const STATUS_FOR_ACTION: Record<ArticleInput['action'], ArticleStatus> = {
   draft: 'DRAFT',
@@ -37,16 +44,6 @@ function assertReadyToSend(input: ArticleInput) {
   if (input.content.trim().length < ARTICLE_MIN_CONTENT) {
     throw badRequest(`Isi artikel minimal ${ARTICLE_MIN_CONTENT} karakter sebelum dikirim atau diterbitkan.`);
   }
-}
-
-/** Cari slug yang belum dipakai: base, base-2, base-3, ... */
-async function uniqueSlug(tx: Transaction, base: string, selfId?: string): Promise<string> {
-  for (let i = 1; i <= 50; i++) {
-    const candidate = i === 1 ? base : `${base}-${i}`;
-    const snap = await tx.get(col().where('slug', '==', candidate).limit(2));
-    if (snap.docs.every((d) => d.id === selfId)) return candidate;
-  }
-  return `${base}-${Date.now().toString(36)}`;
 }
 
 function byUpdatedDesc(a: Article, b: Article) {
@@ -95,7 +92,7 @@ export async function createArticle(actor: UserProfile, input: ArticleInput): Pr
   const base = input.slug || slugify(input.title);
 
   const article = await adminDb.runTransaction(async (tx) => {
-    const slug = await uniqueSlug(tx, base);
+    const slug = await ensureUniqueSlug(col(), base, { tx });
     const data: Article = {
       id: ref.id,
       title: input.title,
@@ -136,13 +133,14 @@ export async function createArticle(actor: UserProfile, input: ArticleInput): Pr
     return data;
   });
 
+  if (article.status === 'PUBLISHED') invalidateArticleCaches(article.slug);
   return article;
 }
 
 export async function updateArticle(actor: UserProfile, id: string, input: ArticleInput): Promise<Article> {
   assertReadyToSend(input);
 
-  return adminDb.runTransaction(async (tx) => {
+  const updated = await adminDb.runTransaction(async (tx) => {
     const ref = col().doc(id);
     const snap = await tx.get(ref);
     if (!snap.exists) throw notFound('Artikel tidak ditemukan.');
@@ -168,7 +166,7 @@ export async function updateArticle(actor: UserProfile, id: string, input: Artic
     if (!wasPublished && art.status === 'PENDING_REVIEW' && input.action === 'draft') status = 'DRAFT';
 
     const base = input.slug || art.slug;
-    const slug = base === art.slug ? art.slug : await uniqueSlug(tx, base, id);
+    const slug = base === art.slug ? art.slug : await ensureUniqueSlug(col(), base, { tx, selfId: id });
 
     const patch: Partial<Article> & { updated_at: string } = {
       title: input.title,
@@ -208,6 +206,9 @@ export async function updateArticle(actor: UserProfile, id: string, input: Artic
     tx.set(audit.ref, audit.data);
     return { ...art, ...patch } as Article;
   });
+
+  if (updated.status === 'PUBLISHED') invalidateArticleCaches(updated.slug);
+  return updated;
 }
 
 /** Penulis mengirim draf yang sudah ada ke Pending Review. */
@@ -243,7 +244,7 @@ export async function reviewArticle(
   id: string,
   input: ArticleReviewInput
 ): Promise<void> {
-  await adminDb.runTransaction(async (tx) => {
+  const publishedSlug = await adminDb.runTransaction(async (tx) => {
     const ref = col().doc(id);
     const snap = await tx.get(ref);
     if (!snap.exists) throw notFound('Artikel tidak ditemukan.');
@@ -289,14 +290,17 @@ export async function reviewArticle(
         : `Menolak artikel "${art.title}" karya ${art.author_name}: ${input.note?.trim()}`,
     });
     tx.set(audit.ref, audit.data);
+    return publish ? art.slug : null;
   });
+
+  if (publishedSlug) invalidateArticleCaches(publishedSlug);
 }
 
 export async function unpublishArticle(actor: UserProfile, id: string): Promise<void> {
   if (!canUnpublishArticle(actor)) {
     throw forbidden('Hanya Presidium dan Creator yang dapat menarik publikasi artikel.');
   }
-  await adminDb.runTransaction(async (tx) => {
+  const slug = await adminDb.runTransaction(async (tx) => {
     const ref = col().doc(id);
     const snap = await tx.get(ref);
     if (!snap.exists) throw notFound('Artikel tidak ditemukan.');
@@ -316,11 +320,14 @@ export async function unpublishArticle(actor: UserProfile, id: string): Promise<
       summary: `Menarik publikasi artikel "${art.title}" (kembali ke Draft)`,
     });
     tx.set(audit.ref, audit.data);
+    return art.slug;
   });
+
+  invalidateArticleCaches(slug);
 }
 
 export async function deleteArticle(actor: UserProfile, id: string): Promise<void> {
-  await adminDb.runTransaction(async (tx) => {
+  const deletedPublishedSlug = await adminDb.runTransaction(async (tx) => {
     const ref = col().doc(id);
     const snap = await tx.get(ref);
     if (!snap.exists) throw notFound('Artikel tidak ditemukan.');
@@ -338,6 +345,9 @@ export async function deleteArticle(actor: UserProfile, id: string): Promise<voi
       summary: `Menghapus artikel "${art.title}" (${art.status}) karya ${art.author_name}`,
     });
     tx.set(audit.ref, audit.data);
+    return art.status === 'PUBLISHED' ? art.slug : null;
   });
+
+  if (deletedPublishedSlug) invalidateArticleCaches(deletedPublishedSlug);
 }
 

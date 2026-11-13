@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { errorResponse, readJson } from '@/lib/api/route';
+import { AppError } from '@/lib/errors';
 import { createSession, clearSession } from '@/lib/auth/session';
 import {
   buildRateLimitHeaders,
@@ -7,6 +10,10 @@ import {
   RATE_LIMIT_POLICIES,
   rateLimitErrorResponse,
 } from '@/lib/security/rate-limit';
+
+const SessionLoginSchema = z.object({
+  id_token: z.string().trim().min(1, 'Token autentikasi tidak valid.'),
+});
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,25 +26,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
-    const { id_token } = body;
+    const { id_token } = await readJson(req, SessionLoginSchema);
 
-    if (!id_token || typeof id_token !== 'string') {
-      return NextResponse.json({ error: 'Token autentikasi tidak valid.' }, { status: 400 });
+    let profile;
+    try {
+      ({ profile } = await createSession(id_token));
+    } catch (authErr) {
+      if (authErr instanceof AppError) throw authErr;
+      const msg = authErr instanceof Error ? authErr.message : 'Gagal memproses sesi.';
+      throw new AppError(msg, 401);
     }
 
-    const { profile } = await createSession(id_token);
-
     return NextResponse.json(
-      {
-        success: true,
-        user: profile,
-      },
+      { success: true, user: profile },
       { headers: buildRateLimitHeaders(rl) }
     );
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Gagal memproses sesi.';
-    return NextResponse.json({ error: msg }, { status: 401 });
+  } catch (err) {
+    return errorResponse(err);
   }
 }
 
@@ -45,9 +50,8 @@ export async function DELETE() {
   try {
     await clearSession();
     return NextResponse.json({ success: true });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Gagal keluar.';
-    return NextResponse.json({ error: msg }, { status: 500 });
+  } catch (err) {
+    return errorResponse(err);
   }
 }
 

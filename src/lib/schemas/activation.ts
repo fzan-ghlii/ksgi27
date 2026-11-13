@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { optionalImageRef } from '@/lib/schemas/content';
 
 export const CreateInviteSchema = z.object({
   target_role: z.enum(['member', 'admin_kadiv', 'master_presidium']),
@@ -25,7 +26,7 @@ export const CompleteActivationSchema = z.object({
   nim: z.string().min(5, 'NIM minimal 5 karakter'),
   faculty_major: z.string().min(3, 'Fakultas / Program Studi wajib diisi'),
   phone_whatsapp: z.string().min(9, 'Nomor WhatsApp valid diperlukan (minimal 9 digit)'),
-  avatar_url: z.string().url('Format URL foto tidak valid').or(z.literal('')).optional(),
+  avatar_url: optionalImageRef,
 });
 
 export type CompleteActivationInput = z.infer<typeof CompleteActivationSchema>;

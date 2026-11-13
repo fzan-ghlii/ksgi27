@@ -6,6 +6,10 @@ import { ActivationInvite, UserProfile, BoardMember, InviteStatus } from '@/type
 import { CreateInviteInput, CompleteActivationInput } from '@/lib/schemas/activation';
 import { canIssueInvite } from '@/lib/auth/roles';
 import { seedInitialPeriodAndDivisions } from '@/lib/auth/bootstrap';
+import { AppError, badRequest, conflict, forbidden, notFound } from '@/lib/errors';
+import { buildAudit, writeAudit } from '@/lib/data/audit';
+import { invalidatePublicCache, revalidatePublicPaths } from '@/lib/data/public';
+import { isSafeDocId } from '@/lib/security/guards';
 
 export async function createActivationInvite(
   actor: UserProfile,
@@ -13,7 +17,7 @@ export async function createActivationInvite(
 ): Promise<ActivationInvite> {
   // 1. Check actor authorization
   if (!canIssueInvite(actor.role, actor.division_code, input.target_role)) {
-    throw new Error('Anda tidak memiliki wewenang untuk membuat tautan aktivasi dengan role ini.');
+    throw forbidden('Anda tidak memiliki wewenang untuk membuat tautan aktivasi dengan role ini.');
   }
 
   // 2. Ensure initial period & divisions exist
@@ -28,7 +32,7 @@ export async function createActivationInvite(
     .get();
 
   if (divQuery.empty) {
-    throw new Error(`Divisi ${input.division_code} tidak ditemukan untuk periode ${periodId}.`);
+    throw notFound(`Divisi ${input.division_code} tidak ditemukan untuk periode ${periodId}.`);
   }
   const divisionDoc = divQuery.docs[0];
 
@@ -56,16 +60,11 @@ export async function createActivationInvite(
 
   await adminDb.collection('activation_invites').doc(token).set(inviteData);
 
-  // Log to audit_logs
-  await adminDb.collection('audit_logs').add({
-    actor_uid: actor.uid,
-    actor_email: actor.email,
-    actor_role: actor.role,
+  await writeAudit(actor, {
     action: 'INVITE_GENERATED',
     target_collection: 'activation_invites',
     target_id: token,
     summary: `Membuat link aktivasi untuk jabatan "${input.assigned_position}" (${input.division_code}) role: ${input.target_role}`,
-    timestamp: now.toISOString(),
   });
 
   return inviteData;
@@ -76,6 +75,14 @@ export async function getInviteByToken(token: string): Promise<{
   isValid: boolean;
   statusMessage: string;
 }> {
+  if (!isSafeDocId(token)) {
+    return {
+      invite: null as unknown as ActivationInvite,
+      isValid: false,
+      statusMessage: 'Tautan aktivasi tidak valid atau tidak ditemukan.',
+    };
+  }
+
   const docRef = adminDb.collection('activation_invites').doc(token);
   const snap = await docRef.get();
 
@@ -152,38 +159,38 @@ export async function revokeInvite(token: string, actor: UserProfile): Promise<v
   const snap = await docRef.get();
 
   if (!snap.exists) {
-    throw new Error('Tautan aktivasi tidak ditemukan.');
+    throw notFound('Tautan aktivasi tidak ditemukan.');
   }
 
   const invite = snap.data() as ActivationInvite;
   if (!canIssueInvite(actor.role, actor.division_code, invite.target_role)) {
-    throw new Error('Anda tidak berhak mencabut tautan aktivasi ini.');
+    throw forbidden('Anda tidak berhak mencabut tautan aktivasi ini.');
   }
 
   if (invite.status === 'USED') {
-    throw new Error('Tautan yang sudah terpakai tidak dapat dicabut.');
+    throw badRequest('Tautan yang sudah terpakai tidak dapat dicabut.');
   }
 
-  const now = new Date().toISOString();
   await docRef.update({
     status: 'REVOKED',
   });
 
-  await adminDb.collection('audit_logs').add({
-    actor_uid: actor.uid,
-    actor_email: actor.email,
-    actor_role: actor.role,
+  await writeAudit(actor, {
     action: 'INVITE_REVOKED',
     target_collection: 'activation_invites',
     target_id: token,
     summary: `Mencabut tautan aktivasi token ${token.slice(0, 8)}... (${invite.assigned_position})`,
-    timestamp: now,
   });
 }
 
 export async function completeActivation(input: CompleteActivationInput): Promise<UserProfile> {
   // 1. Verify ID token from Firebase Auth
-  const decodedToken = await adminAuth.verifyIdToken(input.id_token);
+  let decodedToken;
+  try {
+    decodedToken = await adminAuth.verifyIdToken(input.id_token);
+  } catch {
+    throw new AppError('Token autentikasi Google tidak valid atau sudah kedaluwarsa.', 401);
+  }
   const uid = decodedToken.uid;
   const email = decodedToken.email || '';
 
@@ -197,21 +204,21 @@ export async function completeActivation(input: CompleteActivationInput): Promis
   const resultProfile = await adminDb.runTransaction(async (transaction: Transaction) => {
     const inviteDoc = await transaction.get(inviteRef);
     if (!inviteDoc.exists) {
-      throw new Error('Tautan aktivasi tidak valid.');
+      throw notFound('Tautan aktivasi tidak valid.');
     }
 
     const invite = inviteDoc.data() as ActivationInvite;
     if (invite.status !== 'PENDING') {
-      throw new Error('Tautan aktivasi sudah tidak berlaku atau sudah terpakai.');
+      throw badRequest('Tautan aktivasi sudah tidak berlaku atau sudah terpakai.');
     }
 
     if (new Date(invite.expires_at) < new Date()) {
-      throw new Error('Tautan aktivasi telah kedaluwarsa.');
+      throw badRequest('Tautan aktivasi telah kedaluwarsa.');
     }
 
     const existingUser = await transaction.get(userRef);
     if (existingUser.exists) {
-      throw new Error('Akun ini sudah terdaftar sebagai pengurus.');
+      throw conflict('Akun ini sudah terdaftar sebagai pengurus.');
     }
 
     // 2. Prepare user profile
@@ -260,18 +267,16 @@ export async function completeActivation(input: CompleteActivationInput): Promis
     transaction.set(boardMemberRef, boardMember);
 
     // 6. Record audit log
-    const auditRef = adminDb.collection('audit_logs').doc();
-    transaction.set(auditRef, {
-      id: auditRef.id,
-      actor_uid: uid,
-      actor_email: email,
-      actor_role: invite.target_role,
-      action: 'INVITE_USED',
-      target_collection: 'activation_invites',
-      target_id: input.token,
-      summary: `Pengurus baru "${profile.full_name}" berhasil aktivasi akun (${profile.position_title} - ${profile.division_code})`,
-      timestamp: now,
-    });
+    const audit = buildAudit(
+      { uid, email, role: invite.target_role },
+      {
+        action: 'INVITE_USED',
+        target_collection: 'activation_invites',
+        target_id: input.token,
+        summary: `Pengurus baru "${profile.full_name}" berhasil aktivasi akun (${profile.position_title} - ${profile.division_code})`,
+      }
+    );
+    transaction.set(audit.ref, audit.data);
 
     return profile;
   });
@@ -281,6 +286,9 @@ export async function completeActivation(input: CompleteActivationInput): Promis
     role: resultProfile.role,
     division_code: resultProfile.division_code,
   });
+
+  invalidatePublicCache('board');
+  revalidatePublicPaths(['/', '/struktur']);
 
   return resultProfile;
 }

@@ -1,19 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireUser } from '@/lib/auth/session';
+import { getCurrentUser } from '@/lib/auth/session';
+import { getInviteByToken } from '@/lib/data/invites';
 import { errorResponse } from '@/lib/api/route';
 import { adminDb } from '@/lib/firebase/admin';
 import { badRequest } from '@/lib/errors';
 import { isValidWebpBuffer } from '@/lib/security/guards';
+import { authorizeImageUpload } from '@/lib/security/image-upload-auth';
 import {
   enforceRateLimit,
+  getClientIp,
   RATE_LIMIT_POLICIES,
   rateLimitErrorResponse,
 } from '@/lib/security/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireUser('member');
-    const rl = await enforceRateLimit(RATE_LIMIT_POLICIES.imageUpload, `uid:${user.uid}`);
+    const auth = await authorizeImageUpload(
+      {
+        activationToken: req.headers.get('x-activation-token'),
+        clientIp: getClientIp(req),
+      },
+      {
+        getSessionUser: getCurrentUser,
+        getInvite: getInviteByToken,
+      }
+    );
+    if (!auth.allowed) {
+      return auth.response;
+    }
+
+    const rl = await enforceRateLimit(RATE_LIMIT_POLICIES.imageUpload, auth.actor.rateLimitKey);
     if (!rl.allowed) {
       return rateLimitErrorResponse(
         rl,
@@ -50,8 +66,8 @@ export async function POST(req: NextRequest) {
       base64: cleanBase64,
       size: typeof size === 'number' && size > 0 ? size : buffer.length,
       original_size: typeof original_size === 'number' && original_size > 0 ? original_size : buffer.length,
-      uploaded_by: user.uid,
-      uploaded_by_name: user.full_name,
+      uploaded_by: auth.actor.uploadedBy,
+      uploaded_by_name: auth.actor.uploadedByName,
       created_at: new Date().toISOString(),
     };
 

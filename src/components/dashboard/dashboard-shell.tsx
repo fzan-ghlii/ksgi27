@@ -18,15 +18,20 @@ import {
   Menu,
   X,
   ExternalLink,
-  Shield,
-  Sparkles,
   ClipboardCheck,
   Images,
+  Trophy,
 } from 'lucide-react';
 import { UserProfile } from '@/types';
 import { RoleBadge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import {
+  canManageHeroCarousel,
+  canAccessEventDashboard,
+  canManageAchievements,
+} from '@/lib/auth/permissions';
+import { apiFetch } from '@/lib/api-client';
 import { GibeiLogo } from '@/components/shared/logo';
 import { Button } from '@/components/ui/button';
 
@@ -44,9 +49,11 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
   const [isLoggingOut, setIsLoggingOut] = React.useState(false);
 
   // Close mobile drawer on route change
-  React.useEffect(() => {
-    setMobileDrawerOpen(false);
-  }, [pathname]);
+  const [prevPathname, setPrevPathname] = React.useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    if (mobileDrawerOpen) setMobileDrawerOpen(false);
+  }
 
   // Determine allowed menus based on role and division
   const isCreator = user.role === 'creator';
@@ -90,7 +97,7 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
       title: 'Event & SPM',
       href: '/dashboard/event-spm',
       icon: Calendar,
-      show: isCreator || isPresidium || isKadiv,
+      show: canAccessEventDashboard(user),
     },
     {
       title: 'Artikel & Riset',
@@ -108,7 +115,14 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
       title: 'Carousel Beranda',
       href: '/dashboard/carousel',
       icon: Images,
-      show: isCreator || isPresidium,
+      show: canManageHeroCarousel(user),
+      badge: 'Presidium',
+    },
+    {
+      title: 'Prestasi GIBEI',
+      href: '/dashboard/prestasi',
+      icon: Trophy,
+      show: canManageAchievements(user),
       badge: 'Presidium',
     },
     {
@@ -125,7 +139,7 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
-      await fetch('/api/auth/session', { method: 'DELETE' });
+      await apiFetch('/api/auth/session', { method: 'DELETE' });
       toast.success('Berhasil keluar dari sesi.');
       router.push('/login');
       router.refresh();

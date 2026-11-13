@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Plus, Copy, Check, Sparkles, AlertCircle, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/api-client';
 
 interface ModalProps {
   user: UserProfile;
@@ -47,22 +48,16 @@ export function InviteGeneratorModal({ user, onInviteCreated }: ModalProps) {
       setLoading(true);
       setError(null);
 
-      const res = await fetch('/api/invites', {
+      const data = await apiFetch<{ invite: { token: string } }>('/api/invites', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           target_role: targetRole,
           division_code: divisionCode,
           assigned_position: assignedPosition,
           recipient_name_hint: recipientHint,
           expires_in_days: expiresInDays,
-        }),
+        },
       });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Gagal membuat tautan.');
-      }
 
       const fullUrl = `${window.location.origin}/aktivasi/${data.invite.token}`;
       setCreatedUrl(fullUrl);

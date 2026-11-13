@@ -30,42 +30,81 @@ export function GalleryModal({
   periods,
   initialGallery,
 }: GalleryModalProps) {
+  const editing = !!initialGallery;
+  const [busy, setBusy] = React.useState(false);
+  const [selectedDivision, setSelectedDivision] = React.useState<DivisionCode | null>(null);
+  const activeDivision = selectedDivision ?? initialGallery?.division_code ?? user.division_code ?? 'GALERI';
+  const willAutoPublish = canApproveGallery(user, activeDivision);
+
+  const handleOpenChange = (o: boolean) => {
+    if (busy) return;
+    if (!o) setSelectedDivision(null);
+    onOpenChange(o);
+  };
+
+  return (
+    <Modal
+      open={open}
+      onOpenChange={handleOpenChange}
+      title={editing ? 'Edit Album Dokumentasi' : 'Tambah Album Dokumentasi Kegiatan'}
+      description={
+        willAutoPublish
+          ? 'Anda memiliki wewenang kurasi: album ini akan langsung berstatus Diterbitkan (Published).'
+          : 'Album yang diunggah akan masuk antrean persetujuan Kadiv MEDIA / Presidium sebelum tampil di publik.'
+      }
+      size="lg"
+    >
+      {open ? (
+        <GalleryForm
+          key={initialGallery?.id ?? 'new'}
+          user={user}
+          periods={periods}
+          initialGallery={initialGallery}
+          busy={busy}
+          onBusyChange={setBusy}
+          onDivisionChange={setSelectedDivision}
+          onClose={() => handleOpenChange(false)}
+        />
+      ) : null}
+    </Modal>
+  );
+}
+
+function GalleryForm({
+  user,
+  periods,
+  initialGallery,
+  busy,
+  onBusyChange,
+  onDivisionChange,
+  onClose,
+}: {
+  user: UserProfile;
+  periods: Period[];
+  initialGallery?: Gallery | null;
+  busy: boolean;
+  onBusyChange: (busy: boolean) => void;
+  onDivisionChange: (div: DivisionCode) => void;
+  onClose: () => void;
+}) {
   const router = useRouter();
   const editing = !!initialGallery;
 
-  const [title, setTitle] = React.useState('');
-  const [caption, setCaption] = React.useState('');
+  const [title, setTitle] = React.useState(() => initialGallery?.title ?? '');
+  const [caption, setCaption] = React.useState(() => initialGallery?.caption ?? '');
   const [activityDate, setActivityDate] = React.useState(
-    new Date().toISOString().split('T')[0]
+    () => initialGallery?.activity_date ?? new Date().toISOString().split('T')[0]
   );
   const [divisionCode, setDivisionCode] = React.useState<DivisionCode>(
-    user.division_code ?? 'GALERI'
+    () => initialGallery?.division_code ?? user.division_code ?? 'GALERI'
   );
-  const [periodId, setPeriodId] = React.useState('');
-  const [imageUrls, setImageUrls] = React.useState<string[]>(['']);
+  const [periodId, setPeriodId] = React.useState(
+    () => initialGallery?.period_id ?? (periods.find((p) => p.is_current) ?? periods[0])?.id ?? ''
+  );
+  const [imageUrls, setImageUrls] = React.useState<string[]>(() =>
+    initialGallery && initialGallery.image_urls.length > 0 ? initialGallery.image_urls : ['']
+  );
   const [errors, setErrors] = React.useState<Record<string, string>>({});
-  const [busy, setBusy] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!open) return;
-    if (initialGallery) {
-      setTitle(initialGallery.title);
-      setCaption(initialGallery.caption);
-      setActivityDate(initialGallery.activity_date);
-      setDivisionCode(initialGallery.division_code);
-      setPeriodId(initialGallery.period_id);
-      setImageUrls(initialGallery.image_urls.length > 0 ? initialGallery.image_urls : ['']);
-    } else {
-      setTitle('');
-      setCaption('');
-      setActivityDate(new Date().toISOString().split('T')[0]);
-      setDivisionCode(user.division_code ?? 'GALERI');
-      const activePeriod = periods.find((p) => p.is_current) ?? periods[0];
-      setPeriodId(activePeriod?.id ?? '');
-      setImageUrls(['']);
-    }
-    setErrors({});
-  }, [open, initialGallery, user, periods]);
 
   const willAutoPublish = canApproveGallery(user, divisionCode);
 
@@ -91,7 +130,7 @@ export function GalleryModal({
     setErrors({});
 
     try {
-      setBusy(true);
+      onBusyChange(true);
       if (editing && initialGallery) {
         await apiFetch(`/api/galleries/${initialGallery.id}`, {
           method: 'PATCH',
@@ -109,27 +148,16 @@ export function GalleryModal({
             : 'Album dokumentasi berhasil diunggah dan menunggu persetujuan Kadiv/Presidium.'
         );
       }
-      onOpenChange(false);
+      onClose();
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Gagal menyimpan album.');
     } finally {
-      setBusy(false);
+      onBusyChange(false);
     }
   };
 
   return (
-    <Modal
-      open={open}
-      onOpenChange={(o) => !busy && onOpenChange(o)}
-      title={editing ? 'Edit Album Dokumentasi' : 'Tambah Album Dokumentasi Kegiatan'}
-      description={
-        willAutoPublish
-          ? 'Anda memiliki wewenang kurasi: album ini akan langsung berstatus Diterbitkan (Published).'
-          : 'Album yang diunggah akan masuk antrean persetujuan Kadiv MEDIA / Presidium sebelum tampil di publik.'
-      }
-      size="lg"
-    >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <Field label="Judul Kegiatan" htmlFor="gal-title" error={errors.title} required>
           <Input
@@ -156,7 +184,11 @@ export function GalleryModal({
             <Select
               id="div-code"
               value={divisionCode}
-              onChange={(e) => setDivisionCode(e.target.value as DivisionCode)}
+              onChange={(e) => {
+                const next = e.target.value as DivisionCode;
+                setDivisionCode(next);
+                onDivisionChange(next);
+              }}
               disabled={busy}
             >
               {DIVISION_LIST.map((d) => (
@@ -207,7 +239,7 @@ export function GalleryModal({
           <Button
             type="button"
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={onClose}
             disabled={busy}
           >
             Batal
@@ -218,7 +250,6 @@ export function GalleryModal({
           </Button>
         </div>
       </form>
-    </Modal>
   );
 }
 

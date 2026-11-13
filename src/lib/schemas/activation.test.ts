@@ -64,6 +64,20 @@ describe('CompleteActivationSchema', () => {
     expect(res.success).toBe(true);
   });
 
+  it('allows relative uploaded image and local image refs for avatar_url', () => {
+    const base = {
+      token: 'secure-token-123',
+      id_token: 'firebase-id-token-abc',
+      full_name: 'Budi Santoso',
+      nim: '7213210045',
+      faculty_major: 'FE / Manajemen',
+      phone_whatsapp: '081234567890',
+    };
+    expect(CompleteActivationSchema.safeParse({ ...base, avatar_url: '/api/images/img_123_abc' }).success).toBe(true);
+    expect(CompleteActivationSchema.safeParse({ ...base, avatar_url: '/gambar/pengurus/budi.webp' }).success).toBe(true);
+    expect(CompleteActivationSchema.safeParse({ ...base, avatar_url: 'javascript:alert(1)' }).success).toBe(false);
+  });
+
   it('rejects short phone number', () => {
     const invalid = {
       token: 'secure-token-123',

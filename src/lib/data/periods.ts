@@ -3,11 +3,20 @@ import { adminDb } from '@/lib/firebase/admin';
 import type { Division, Period, UserProfile } from '@/types';
 import { DIVISION_LIST, divisionDocId } from '@/lib/constants/divisions';
 import { canManagePeriods } from '@/lib/auth/permissions';
+import { invalidateSeededPeriodCache } from '@/lib/auth/bootstrap';
 import { PeriodInput, PeriodUpdateInput } from '@/lib/schemas/content';
 import { badRequest, conflict, forbidden, notFound } from '@/lib/errors';
 import { buildAudit } from '@/lib/data/audit';
+import { invalidatePublicCache, revalidatePublicPaths } from '@/lib/data/public';
 
-export function periodIdFromRange(yearRange: string): string {
+function invalidatePeriodCaches() {
+  invalidateSeededPeriodCache();
+  invalidatePublicCache('periods');
+  invalidatePublicCache('board');
+  revalidatePublicPaths(['/', '/struktur', '/tentang', '/kegiatan', '/galeri']);
+}
+
+function periodIdFromRange(yearRange: string): string {
   return yearRange.replace('/', '-');
 }
 
@@ -16,11 +25,6 @@ export async function listPeriods(): Promise<Period[]> {
   return snap.docs
     .map((d) => d.data() as Period)
     .sort((a, b) => b.year_range.localeCompare(a.year_range));
-}
-
-export async function getCurrentPeriodId(): Promise<string | null> {
-  const snap = await adminDb.collection('periods').where('is_current', '==', true).limit(1).get();
-  return snap.empty ? null : snap.docs[0].id;
 }
 
 export async function listDivisionsByPeriod(periodId: string): Promise<Division[]> {
@@ -77,6 +81,8 @@ export async function createPeriod(actor: UserProfile, input: PeriodInput): Prom
   if (input.is_current) {
     await setActivePeriod(actor, id);
     period.is_current = true;
+  } else {
+    invalidatePeriodCaches();
   }
   return period;
 }
@@ -114,6 +120,8 @@ export async function updatePeriod(
 
   if (input.is_current === true && !existing.is_current) {
     await setActivePeriod(actor, id);
+  } else {
+    invalidatePeriodCaches();
   }
 }
 
@@ -143,6 +151,7 @@ export async function setActivePeriod(actor: UserProfile, id: string): Promise<v
     });
     tx.set(audit.ref, audit.data);
   });
+  invalidatePeriodCaches();
 }
 
 export async function deletePeriod(actor: UserProfile, id: string): Promise<void> {
@@ -179,5 +188,6 @@ export async function deletePeriod(actor: UserProfile, id: string): Promise<void
   });
   batch.set(audit.ref, audit.data);
   await batch.commit();
+  invalidatePeriodCaches();
 }
 

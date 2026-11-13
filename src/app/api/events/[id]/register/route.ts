@@ -41,7 +41,9 @@ export async function POST(req: Request, ctx: RouteCtx<{ id: string }>) {
       throw forbidden('Verifikasi keamanan anti-bot gagal. Silakan muat ulang captcha dan coba lagi.');
     }
 
-    const { turnstile_token: _tt, company_website: _hp, ...participantData } = input;
+    const { turnstile_token: unusedToken, company_website: unusedHp, ...participantData } = input;
+    void unusedToken;
+    void unusedHp;
     const result = await registerParticipant(id, participantData);
     return NextResponse.json(
       {

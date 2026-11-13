@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { 
   Camera, 
   CheckCircle2, 
-  ExternalLink, 
   Eye, 
   ImageIcon, 
   Pencil, 
@@ -380,7 +379,7 @@ export function GaleriClient({
         title="Hapus Album Dokumentasi?"
         description={
           <>
-            Apakah Anda yakin ingin menghapus album <strong>"{deleteConfirm.gallery?.title}"</strong> beserta seluruh foto di dalamnya? Tindakan ini tidak dapat dibatalkan.
+            Apakah Anda yakin ingin menghapus album <strong>&ldquo;{deleteConfirm.gallery?.title}&rdquo;</strong> beserta seluruh foto di dalamnya? Tindakan ini tidak dapat dibatalkan.
           </>
         }
         confirmLabel="Hapus Album"

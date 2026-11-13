@@ -28,12 +28,7 @@ export function HeroBackgroundCarousel({
   );
 
   const [currentIndex, setCurrentIndex] = React.useState(0);
-
-  React.useEffect(() => {
-    if (currentIndex >= activeSlides.length) {
-      setCurrentIndex(0);
-    }
-  }, [activeSlides.length, currentIndex]);
+  const safeIndex = activeSlides.length > 0 && currentIndex < activeSlides.length ? currentIndex : 0;
 
   React.useEffect(() => {
     if (activeSlides.length <= 1) return;
@@ -44,7 +39,7 @@ export function HeroBackgroundCarousel({
     }, intervalMs);
 
     return () => window.clearInterval(timer);
-  }, [activeSlides.length, config.autoplay_seconds, currentIndex]);
+  }, [activeSlides.length, config.autoplay_seconds]);
 
   if (activeSlides.length === 0) return null;
 
@@ -67,7 +62,7 @@ export function HeroBackgroundCarousel({
         className={cn('absolute inset-0 z-0 overflow-hidden pointer-events-none select-none', className)}
       >
         {activeSlides.map((slide, idx) => {
-          const isActive = idx === currentIndex;
+          const isActive = idx === safeIndex;
           return (
             <div
               key={slide.id}
@@ -132,7 +127,7 @@ export function HeroBackgroundCarousel({
 
             <div className="flex items-center gap-1.5">
               {activeSlides.map((slide, idx) => {
-                const active = idx === currentIndex;
+                const active = idx === safeIndex;
                 return (
                   <button
                     key={slide.id}

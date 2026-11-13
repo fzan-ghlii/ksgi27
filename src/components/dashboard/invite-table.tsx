@@ -1,22 +1,24 @@
 'use client';
 
 import * as React from 'react';
-import { ActivationInvite, UserProfile } from '@/types';
+import { ActivationInvite } from '@/types';
 import { InviteStatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Copy, Check, Trash2, Link2, ExternalLink } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ui/modal';
+import { Copy, Check, Trash2, ExternalLink } from 'lucide-react';
+import { apiFetch } from '@/lib/api-client';
 import { formatDateTime } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface TableProps {
   invites: ActivationInvite[];
-  user: UserProfile;
   onRefresh: () => void;
 }
 
-export function InviteTable({ invites, user, onRefresh }: TableProps) {
+export function InviteTable({ invites, onRefresh }: TableProps) {
   const [copiedToken, setCopiedToken] = React.useState<string | null>(null);
   const [revokingToken, setRevokingToken] = React.useState<string | null>(null);
+  const [revokeTarget, setRevokeTarget] = React.useState<{ token: string; position: string } | null>(null);
 
   const handleCopy = (token: string) => {
     const fullUrl = `${window.location.origin}/aktivasi/${token}`;
@@ -26,16 +28,16 @@ export function InviteTable({ invites, user, onRefresh }: TableProps) {
     setTimeout(() => setCopiedToken(null), 2000);
   };
 
-  const handleRevoke = async (token: string, position: string) => {
-    const confirm = window.confirm(`Cabut tautan aktivasi untuk "${position}"? Tautan tidak akan bisa digunakan lagi.`);
-    if (!confirm) return;
+  const handleRevoke = (token: string, position: string) => {
+    setRevokeTarget({ token, position });
+  };
 
+  const confirmRevoke = async () => {
+    if (!revokeTarget) return;
+    const { token } = revokeTarget;
     try {
       setRevokingToken(token);
-      const res = await fetch(`/api/invites/${token}/revoke`, { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal mencabut tautan.');
-
+      await apiFetch(`/api/invites/${token}/revoke`, { method: 'POST' });
       toast.success('Tautan berhasil dicabut.');
       onRefresh();
     } catch (err: unknown) {
@@ -228,6 +230,19 @@ export function InviteTable({ invites, user, onRefresh }: TableProps) {
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        open={!!revokeTarget}
+        onOpenChange={(o) => !o && setRevokeTarget(null)}
+        title="Cabut Tautan Aktivasi?"
+        description={
+          <>
+            Tautan aktivasi untuk jabatan <strong>&ldquo;{revokeTarget?.position}&rdquo;</strong> tidak akan dapat digunakan lagi setelah dicabut.
+          </>
+        }
+        confirmLabel="Ya, cabut tautan"
+        onConfirm={confirmRevoke}
+      />
     </div>
   );
 }

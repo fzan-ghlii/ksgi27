@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { apiFetch } from '@/lib/api-client';
 
 export function ViewTracker({ slug }: { slug: string }) {
   React.useEffect(() => {
@@ -9,7 +10,7 @@ export function ViewTracker({ slug }: { slug: string }) {
       const alreadyViewed = sessionStorage.getItem(storageKey);
       if (!alreadyViewed) {
         sessionStorage.setItem(storageKey, 'true');
-        fetch(`/api/artikel/${slug}/view`, { method: 'POST' }).catch(() => {
+        apiFetch(`/api/artikel/${slug}/view`, { method: 'POST' }).catch(() => {
           // ignore tracking failure
         });
       }

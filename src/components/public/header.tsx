@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, TrendingUp, LogIn, ShieldCheck } from 'lucide-react';
+import { Menu, X, LogIn, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { GibeiLogo } from '@/components/shared/logo';
@@ -24,9 +24,11 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
   // Close mobile menu on route navigation
-  React.useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
+  const [prevPathname, setPrevPathname] = React.useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    if (mobileOpen) setMobileOpen(false);
+  }
 
   return (
     <header

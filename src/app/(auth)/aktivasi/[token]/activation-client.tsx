@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Sparkles, CheckCircle, AlertCircle, ShieldCheck, ArrowRight, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { ImageUrlInput, IMAGE_HELP } from '@/components/shared/image-inputs';
@@ -86,10 +85,10 @@ export function ActivationClient({ invite, token }: ActivationClientProps) {
       }
 
       // Submit complete activation payload
-      const res = await fetch('/api/activation/complete', {
+      const { apiFetch } = await import('@/lib/api-client');
+      await apiFetch('/api/activation/complete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           token,
           id_token: idToken,
           full_name: fullName,
@@ -97,13 +96,8 @@ export function ActivationClient({ invite, token }: ActivationClientProps) {
           faculty_major: facultyMajor,
           phone_whatsapp: phoneWhatsapp,
           avatar_url: avatarUrl || '',
-        }),
+        },
       });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Aktivasi gagal.');
-      }
 
       sessionStorage.removeItem('temp_act_id_token');
       toast.success('Selamat! Akun pengurus berhasil diaktivasi.');
@@ -344,6 +338,7 @@ export function ActivationClient({ invite, token }: ActivationClientProps) {
                     onChange={setAvatarUrl}
                     placeholder="/gambar/pengurus/foto.webp atau https://..."
                     disabled={loading}
+                    activationToken={token}
                   />
                   <p className="text-[11px] text-ink-muted leading-relaxed">
                     {IMAGE_HELP}

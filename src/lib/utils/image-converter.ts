@@ -1,3 +1,5 @@
+import { apiFetch } from '@/lib/api-client';
+
 /**
  * Utility untuk validasi dan konversi otomatis gambar ke WebP di sisi browser (client-side).
  * Mendukung input format PNG dan JPG/JPEG dengan batas maksimal ukuran 1 MB.
@@ -10,6 +12,14 @@ export interface ConvertedImageResult {
   webpSize: number;
   width: number;
   height: number;
+}
+
+export interface ConvertImageOptions {
+  maxWidth?: number;
+  maxHeight?: number;
+  quality?: number;
+  requireLandscape?: boolean;
+  minAspectRatio?: number;
 }
 
 export const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1 MB dalam bytes
@@ -28,13 +38,7 @@ export function isLandscapeAspect(
 
 export async function convertImageToWebP(
   file: File,
-  options?: {
-    maxWidth?: number;
-    maxHeight?: number;
-    quality?: number;
-    requireLandscape?: boolean;
-    minAspectRatio?: number;
-  }
+  options?: ConvertImageOptions
 ): Promise<ConvertedImageResult> {
   const maxWidth = options?.maxWidth ?? 1600;
   const maxHeight = options?.maxHeight ?? 1600;
@@ -145,5 +149,30 @@ export async function convertImageToWebP(
     reader.onerror = () => reject(new Error('Gagal membaca berkas gambar asli.'));
     reader.readAsDataURL(file);
   });
+}
+
+export interface UploadWebpOptions extends ConvertImageOptions {
+  activationToken?: string;
+}
+
+/** Konversi berkas gambar ke WebP lalu unggah ke `/api/images` dan kembalikan URL-nya. */
+export async function uploadWebpImage(
+  file: File,
+  options?: UploadWebpOptions
+): Promise<{ url: string; converted: ConvertedImageResult }> {
+  const converted = await convertImageToWebP(file, options);
+  const res = await apiFetch<{ url: string }>('/api/images', {
+    method: 'POST',
+    headers: options?.activationToken
+      ? { 'x-activation-token': options.activationToken }
+      : undefined,
+    body: {
+      name: converted.file.name,
+      base64: converted.base64,
+      size: converted.webpSize,
+      original_size: converted.originalSize,
+    },
+  });
+  return { url: res.url, converted };
 }
 

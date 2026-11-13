@@ -9,30 +9,23 @@ import {
   Upload,
   Loader2,
   Save,
-  ArrowUp,
-  ArrowDown,
-  Trash2,
-  Eye,
-  EyeOff,
   ExternalLink,
   Link as LinkIcon,
   Sparkles,
-  CheckCircle2,
   AlertTriangle,
-  SlidersHorizontal,
 } from 'lucide-react';
 import type { HeroBlurLevel, HeroCarouselConfig, HeroCarouselSlide } from '@/types';
-import { convertImageToWebP, isLandscapeAspect } from '@/lib/utils/image-converter';
+import { isLandscapeAspect, uploadWebpImage } from '@/lib/utils/image-converter';
 import { apiFetch } from '@/lib/api-client';
-import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/dashboard/page-parts';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { EmptyState } from '@/components/ui/empty-state';
 import { Field } from '@/components/ui/form-controls';
 import { ConfirmDialog } from '@/components/ui/modal';
 import { HeroBackgroundCarousel } from '@/components/public/hero-background-carousel';
+import { CarouselSlideList } from './carousel-slide-list';
+import { CarouselSettingsPanel } from './carousel-settings-panel';
 
 interface CarouselClientProps {
   initialConfig: HeroCarouselConfig;
@@ -160,26 +153,16 @@ export function CarouselClient({ initialConfig }: CarouselClientProps) {
     try {
       for (const file of files) {
         try {
-          const converted = await convertImageToWebP(file, {
+          const { url, converted } = await uploadWebpImage(file, {
             maxWidth: 1920,
             maxHeight: 1080,
             quality: 0.85,
             requireLandscape: true,
           });
 
-          const uploadRes = await apiFetch<{ url: string }>('/api/images', {
-            method: 'POST',
-            body: {
-              name: converted.file.name,
-              base64: converted.base64,
-              size: converted.webpSize,
-              original_size: converted.originalSize,
-            },
-          });
-
           addedSlides.push({
             id: `slide_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-            image_url: uploadRes.url,
+            image_url: url,
             alt_text: file.name.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' '),
             caption: '',
             width: converted.width,
@@ -509,267 +492,38 @@ export function CarouselClient({ initialConfig }: CarouselClientProps) {
           </div>
 
           {/* Daftar Slide Carousel */}
-          <div className="rounded-3xl border border-line bg-white p-5 sm:p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between gap-2 border-b border-line pb-3">
-              <div>
-                <h3 className="text-base font-extrabold text-ink">Urutan Slide Carousel</h3>
-                <p className="text-xs text-ink-muted">
-                  Atur urutan tampil, status aktif, keterangan gambar, atau hapus slide.
-                </p>
-              </div>
-              <Badge variant="cerulean">{slides.length} / 12 Slide</Badge>
-            </div>
-
-            {slides.length === 0 ? (
-              <EmptyState
-                icon={Images}
-                title="Belum Ada Slide Carousel"
-                description="Unggah minimal 1 foto landscape / 16:9 di atas agar background hero beranda menampilkan carousel gambar buram."
-                className="p-8"
-              />
-            ) : (
-              <div className="space-y-3.5">
-                {slides.map((slide, index) => (
-                  <div
-                    key={slide.id}
-                    className={cn(
-                      'rounded-2xl border p-3.5 sm:p-4 flex flex-col sm:flex-row gap-4 transition-colors',
-                      slide.is_active
-                        ? 'border-line bg-surface/40'
-                        : 'border-dashed border-line bg-slate-50/70 opacity-75'
-                    )}
-                  >
-                    {/* Thumbnail 16:9 */}
-                    <div className="relative w-full sm:w-48 aspect-video rounded-xl overflow-hidden border border-line bg-slate-100 shrink-0">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={slide.image_url}
-                        alt={slide.alt_text || `Slide ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                      <span className="absolute top-2 left-2 rounded-full bg-ink/75 px-2 py-0.5 text-[10px] font-bold text-white">
-                        #{index + 1}
-                      </span>
-                    </div>
-
-                    {/* Info & Controls */}
-                    <div className="flex-1 min-w-0 space-y-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <Badge variant="cerulean" className="text-[10px]">
-                            {formatAspectLabel(slide.width, slide.height)}
-                          </Badge>
-                          <Badge variant="outline" className="text-[10px] font-mono">
-                            {slide.width}×{slide.height} px
-                          </Badge>
-                          <Badge
-                            variant={slide.is_active ? 'success' : 'outline'}
-                            className="text-[10px]"
-                          >
-                            {slide.is_active ? 'Aktif' : 'Disembunyikan'}
-                          </Badge>
-                        </div>
-
-                        <div className="flex items-center gap-1">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => moveSlide(index, -1)}
-                            disabled={index === 0}
-                            aria-label="Geser naik"
-                            title="Geser naik"
-                          >
-                            <ArrowUp className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => moveSlide(index, 1)}
-                            disabled={index === slides.length - 1}
-                            aria-label="Geser turun"
-                            title="Geser turun"
-                          >
-                            <ArrowDown className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-8 px-2.5"
-                            onClick={() => updateSlide(slide.id, { is_active: !slide.is_active })}
-                          >
-                            {slide.is_active ? (
-                              <>
-                                <EyeOff className="h-3.5 w-3.5" />
-                                <span className="hidden md:inline">Sembunyikan</span>
-                              </>
-                            ) : (
-                              <>
-                                <Eye className="h-3.5 w-3.5" />
-                                <span className="hidden md:inline">Aktifkan</span>
-                              </>
-                            )}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                            onClick={() => setDeleteTarget(slide)}
-                            aria-label="Hapus slide"
-                            title="Hapus slide"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        <Input
-                          value={slide.caption || ''}
-                          onChange={(e) => updateSlide(slide.id, { caption: e.target.value })}
-                          placeholder="Label / keterangan singkat (opsional)"
-                          maxLength={120}
-                          className="h-9 text-xs"
-                        />
-                        <Input
-                          value={slide.alt_text || ''}
-                          onChange={(e) => updateSlide(slide.id, { alt_text: e.target.value })}
-                          placeholder="Alt text aksesibilitas gambar"
-                          maxLength={160}
-                          className="h-9 text-xs"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <CarouselSlideList
+            slides={slides}
+            formatAspectLabel={formatAspectLabel}
+            onMoveSlide={moveSlide}
+            onUpdateSlide={updateSlide}
+            onDeleteSlide={setDeleteTarget}
+          />
         </div>
 
         {/* KANAN: PENGATURAN EFEK BLUR, INTERVAL & OVERLAY */}
-        <div className="lg:col-span-4 rounded-3xl border border-line bg-white p-5 sm:p-6 shadow-sm space-y-5">
-          <div className="border-b border-line pb-3">
-            <h2 className="text-base font-extrabold text-ink flex items-center gap-2">
-              <SlidersHorizontal className="h-4 w-4 text-cerulean" />
-              Efek Visual &amp; Kecepatan
-            </h2>
-            <p className="text-xs text-ink-muted mt-0.5">
-              Sesuaikan tingkat buram dan lapisan putih agar judul hero selalu jelas terbaca.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-ink block">
-              Tingkat Buram Background
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {BLUR_OPTIONS.map((opt) => {
-                const selected = blurLevel === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => {
-                      setBlurLevel(opt.value);
-                      setDirty(true);
-                    }}
-                    className={cn(
-                      'rounded-xl border p-2.5 text-center transition-all cursor-pointer',
-                      selected
-                        ? 'border-cerulean bg-cerulean-light/50 text-cerulean-dark ring-2 ring-cerulean/20'
-                        : 'border-line bg-surface/50 text-ink hover:bg-white'
-                    )}
-                  >
-                    <span className="block text-xs font-extrabold">{opt.label}</span>
-                    <span className="block text-[10px] text-ink-muted mt-0.5">{opt.desc}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <Field
-            label={`Interval Ganti Slide (${autoplaySeconds} detik)`}
-            htmlFor="carousel-interval"
-            hint="Durasi tampil setiap slide sebelum berganti otomatis (3–15 detik)."
-          >
-            <input
-              id="carousel-interval"
-              type="range"
-              min={3}
-              max={15}
-              step={1}
-              value={autoplaySeconds}
-              onChange={(e) => {
-                setAutoplaySeconds(Number(e.target.value));
-                setDirty(true);
-              }}
-              className="w-full accent-cerulean cursor-pointer"
-            />
-          </Field>
-
-          <Field
-            label={`Kecerahan Lapisan Putih (${overlayOpacity}%)`}
-            htmlFor="carousel-overlay"
-            hint="Semakin tinggi persentase, semakin tipis bayangan foto di belakang teks."
-          >
-            <input
-              id="carousel-overlay"
-              type="range"
-              min={45}
-              max={92}
-              step={2}
-              value={overlayOpacity}
-              onChange={(e) => {
-                setOverlayOpacity(Number(e.target.value));
-                setDirty(true);
-              }}
-              className="w-full accent-cerulean cursor-pointer"
-            />
-          </Field>
-
-          <div className="rounded-2xl border border-line bg-surface/60 p-3.5 space-y-1.5 text-xs text-ink-muted">
-            <p className="font-bold text-ink flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-gold" />
-              Pedoman Pengaturan Presidium
-            </p>
-            <ul className="space-y-1 list-disc pl-4">
-              <li>Hanya menerima gambar rasio <strong>16:9 / landscape</strong>.</li>
-              <li>Upload PNG/JPG otomatis dikompres ke format ringan <strong>WebP</strong>.</li>
-              <li>Pengaturan ini hanya dapat diakses dan diubah oleh <strong>Presidium</strong>.</li>
-            </ul>
-          </div>
-
-          {initialConfig.updated_at && (
-            <p className="text-[11px] text-ink-muted flex items-center gap-1.5 pt-1 border-t border-line">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-              <span>
-                Terakhir disimpan oleh <strong>{initialConfig.updated_by_name || 'Presidium'}</strong>
-              </span>
-            </p>
-          )}
-
-          <Button
-            type="button"
-            variant="gold"
-            className="w-full font-bold"
-            onClick={handleSave}
-            disabled={saving}
-          >
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            Simpan Pengaturan Carousel
-          </Button>
-        </div>
+        <CarouselSettingsPanel
+          blurOptions={BLUR_OPTIONS}
+          blurLevel={blurLevel}
+          onBlurChange={(value) => {
+            setBlurLevel(value);
+            setDirty(true);
+          }}
+          autoplaySeconds={autoplaySeconds}
+          onAutoplayChange={(value) => {
+            setAutoplaySeconds(value);
+            setDirty(true);
+          }}
+          overlayOpacity={overlayOpacity}
+          onOverlayChange={(value) => {
+            setOverlayOpacity(value);
+            setDirty(true);
+          }}
+          updatedAt={initialConfig.updated_at}
+          updatedByName={initialConfig.updated_by_name}
+          saving={saving}
+          onSave={handleSave}
+        />
       </div>
 
       {/* Modal Konfirmasi Hapus Slide */}

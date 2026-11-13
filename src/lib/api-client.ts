@@ -1,12 +1,16 @@
 /** Helper fetch untuk komponen client. Melempar Error dengan pesan dari server. */
 export async function apiFetch<T = Record<string, unknown>>(
   url: string,
-  init?: { method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; body?: unknown }
+  init?: { method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; body?: unknown; headers?: Record<string, string> }
 ): Promise<T> {
   const hasBody = init?.body !== undefined;
+  const headers: Record<string, string> = {
+    ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+    ...init?.headers,
+  };
   const res = await fetch(url, {
     method: init?.method ?? 'GET',
-    headers: hasBody ? { 'Content-Type': 'application/json' } : undefined,
+    headers: Object.keys(headers).length > 0 ? headers : undefined,
     body: hasBody ? JSON.stringify(init?.body) : undefined,
   });
   const data = (await res.json().catch(() => ({}))) as { error?: string };

@@ -2,15 +2,10 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { 
   ArrowLeft, 
-  ArrowRight, 
-  BookOpen, 
   Calendar, 
   Clock, 
   Eye, 
-  Share2, 
-  Sparkles, 
   Tag, 
-  User 
 } from 'lucide-react';
 import { 
   getPublishedArticleBySlug, 

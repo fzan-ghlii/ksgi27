@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth/session';
 import { errorResponse, readJson } from '@/lib/api/route';
-import { isPresidiumUp } from '@/lib/auth/permissions';
+import { canManageHeroCarousel } from '@/lib/auth/permissions';
 import { forbidden } from '@/lib/errors';
 import { HeroCarouselUpdateSchema } from '@/lib/schemas/carousel';
 import { getHeroCarouselConfig, updateHeroCarouselConfig } from '@/lib/data/carousel';
@@ -9,7 +9,7 @@ import { getHeroCarouselConfig, updateHeroCarouselConfig } from '@/lib/data/caro
 export async function GET() {
   try {
     const actor = await requireUser('member');
-    if (!isPresidiumUp(actor)) {
+    if (!canManageHeroCarousel(actor)) {
       throw forbidden('Hanya Presidium yang dapat mengakses pengaturan carousel.');
     }
     const config = await getHeroCarouselConfig();

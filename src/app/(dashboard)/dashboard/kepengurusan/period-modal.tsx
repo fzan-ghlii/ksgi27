@@ -22,22 +22,52 @@ export function PeriodModal({
   /** null = buat baru */
   period: Period | null;
 }) {
+  const editing = !!period;
+  const [busy, setBusy] = React.useState(false);
+
+  return (
+    <Modal
+      open={open}
+      onOpenChange={(o) => !busy && onOpenChange(o)}
+      title={editing ? 'Edit Periode Kepengurusan' : 'Tambah Periode Kepengurusan'}
+      description={
+        editing
+          ? 'Rentang tahun tidak dapat diubah karena menjadi ID periode.'
+          : '7 divisi resmi otomatis disalin ke periode baru.'
+      }
+      size="md"
+    >
+      {open ? (
+        <PeriodForm
+          key={period?.id ?? 'new'}
+          period={period}
+          onClose={() => onOpenChange(false)}
+          busy={busy}
+          onBusyChange={setBusy}
+        />
+      ) : null}
+    </Modal>
+  );
+}
+
+function PeriodForm({
+  period,
+  onClose,
+  busy,
+  onBusyChange,
+}: {
+  period: Period | null;
+  onClose: () => void;
+  busy: boolean;
+  onBusyChange: (busy: boolean) => void;
+}) {
   const router = useRouter();
   const editing = !!period;
 
-  const [cabinetName, setCabinetName] = React.useState('');
-  const [yearRange, setYearRange] = React.useState('');
+  const [cabinetName, setCabinetName] = React.useState(() => period?.cabinet_name ?? '');
+  const [yearRange, setYearRange] = React.useState(() => period?.year_range ?? '');
   const [makeActive, setMakeActive] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
-  const [busy, setBusy] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!open) return;
-    setCabinetName(period?.cabinet_name ?? '');
-    setYearRange(period?.year_range ?? '');
-    setMakeActive(false);
-    setErrors({});
-  }, [open, period]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +87,7 @@ export function PeriodModal({
     setErrors({});
 
     try {
-      setBusy(true);
+      onBusyChange(true);
       if (editing && period) {
         await apiFetch(`/api/periods/${period.id}`, { method: 'PATCH', body: parsed.data });
         toast.success('Periode kepengurusan berhasil diperbarui.');
@@ -65,27 +95,16 @@ export function PeriodModal({
         await apiFetch('/api/periods', { method: 'POST', body: parsed.data });
         toast.success('Periode baru dibuat beserta 7 divisi resminya.');
       }
-      onOpenChange(false);
+      onClose();
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Gagal menyimpan periode.');
     } finally {
-      setBusy(false);
+      onBusyChange(false);
     }
   };
 
   return (
-    <Modal
-      open={open}
-      onOpenChange={(o) => !busy && onOpenChange(o)}
-      title={editing ? 'Edit Periode Kepengurusan' : 'Tambah Periode Kepengurusan'}
-      description={
-        editing
-          ? 'Rentang tahun tidak dapat diubah karena menjadi ID periode.'
-          : 'Visi & Misi GIBEI bersifat tetap. 7 divisi resmi otomatis disalin ke periode baru.'
-      }
-      size="md"
-    >
       <form onSubmit={submit} className="space-y-4" noValidate>
         <Field
           label="Rentang Tahun Periode"
@@ -137,7 +156,7 @@ export function PeriodModal({
         )}
 
         <div className="flex justify-end gap-2 pt-2 border-t border-line">
-          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>
+          <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
             Batal
           </Button>
           <Button type="submit" variant="cerulean" disabled={busy} className="gap-2">
@@ -146,6 +165,5 @@ export function PeriodModal({
           </Button>
         </div>
       </form>
-    </Modal>
   );
 }

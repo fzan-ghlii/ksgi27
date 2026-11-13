@@ -4,9 +4,11 @@ import * as React from 'react';
 import { ActivationInvite, UserProfile } from '@/types';
 import { InviteGeneratorModal } from '@/components/dashboard/invite-generator-modal';
 import { InviteTable } from '@/components/dashboard/invite-table';
+import { PageHeader } from '@/components/dashboard/page-parts';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Link2, Sparkles, RefreshCw } from 'lucide-react';
+import { Link2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { apiFetch } from '@/lib/api-client';
 import { toast } from 'sonner';
 
 interface AktivasiClientProps {
@@ -21,9 +23,7 @@ export function AktivasiClient({ initialInvites, user }: AktivasiClientProps) {
   const fetchInvites = async () => {
     try {
       setRefreshing(true);
-      const res = await fetch('/api/invites');
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const data = await apiFetch<{ invites?: ActivationInvite[] }>('/api/invites');
       setInvites(data.invites || []);
     } catch {
       toast.error('Gagal memperbarui daftar undangan.');
@@ -37,35 +37,27 @@ export function AktivasiClient({ initialInvites, user }: AktivasiClientProps) {
 
   return (
     <div className="space-y-8">
-      {/* Page Header with Action */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-line">
-        <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gold-light text-[#66532d] text-xs font-bold uppercase tracking-wider mb-2 border border-gold/30">
-            <Sparkles className="h-3 w-3" />
-            Manajemen Onboarding
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-ink tracking-tight">
-            Generator Link Aktivasi Pengurus
-          </h1>
-          <p className="text-xs sm:text-sm text-ink-muted mt-1">
-            Buat tautan pendaftaran unik sekali pakai untuk menambahkan pengurus baru ke dalam organisasi.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchInvites}
-            disabled={refreshing}
-            className="text-xs"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
-            Perbarui
-          </Button>
-          <InviteGeneratorModal user={user} onInviteCreated={fetchInvites} />
-        </div>
-      </div>
+      <PageHeader
+        badge="Manajemen Onboarding"
+        tone="gold"
+        title="Generator Link Aktivasi Pengurus"
+        description="Buat tautan pendaftaran unik sekali pakai untuk menambahkan pengurus baru ke dalam organisasi."
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchInvites}
+              disabled={refreshing}
+              className="text-xs"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
+              Perbarui
+            </Button>
+            <InviteGeneratorModal user={user} onInviteCreated={fetchInvites} />
+          </>
+        }
+      />
 
       {/* Quick Stats Pill */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -92,7 +84,6 @@ export function AktivasiClient({ initialInvites, user }: AktivasiClientProps) {
         {invites.length > 0 ? (
           <InviteTable
             invites={invites}
-            user={user}
             onRefresh={fetchInvites}
           />
         ) : (

@@ -5,20 +5,18 @@ import { Button } from '@/components/ui/button';
 import { RoleBadge } from '@/components/ui/badge';
 import { 
   Users, 
-  Calendar, 
   FileText, 
   Link2, 
-  TrendingUp, 
   ShieldCheck, 
   Sparkles, 
   ArrowRight,
-  Clock,
   Layers,
   ClipboardCheck,
   Images
 } from 'lucide-react';
 import Link from 'next/link';
 import { adminDb } from '@/lib/firebase/admin';
+import { listAnnouncements } from '@/lib/data/announcements';
 import { CalendarAndAnnouncements } from '@/components/dashboard/calendar-and-announcements';
 import { EventAndSpm, Announcement } from '@/types';
 
@@ -34,12 +32,12 @@ export default async function DashboardOverviewPage() {
   let announcements: Announcement[] = [];
 
   try {
-    const [membersSnap, invitesSnap, articlesSnap, eventsSnap, announcementsSnap] = await Promise.all([
+    const [membersSnap, invitesSnap, articlesSnap, eventsSnap, fetchedAnnouncements] = await Promise.all([
       adminDb.collection('board_members').count().get(),
       adminDb.collection('activation_invites').where('status', '==', 'PENDING').count().get(),
       adminDb.collection('articles').count().get(),
       adminDb.collection('events').limit(20).get().catch(() => null),
-      adminDb.collection('announcements').orderBy('pinned', 'desc').orderBy('created_at', 'desc').limit(15).get().catch(() => null),
+      listAnnouncements(15).catch(() => [] as Announcement[]),
     ]);
     totalMembers = membersSnap.data().count;
     activeInvites = invitesSnap.data().count;
@@ -47,9 +45,7 @@ export default async function DashboardOverviewPage() {
     if (eventsSnap) {
       events = eventsSnap.docs.map((d) => ({ id: d.id, ...d.data() } as EventAndSpm));
     }
-    if (announcementsSnap) {
-      announcements = announcementsSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Announcement));
-    }
+    announcements = fetchedAnnouncements;
   } catch {
     // Fallback for initial empty DB
   }

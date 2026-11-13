@@ -1,17 +1,20 @@
 import 'server-only';
 import { cache } from 'react';
+import { revalidatePath } from 'next/cache';
 import { adminDb, FieldValue } from '@/lib/firebase/admin';
 import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import {
   BoardMember,
   Period,
-  Division,
   EventAndSpm,
   Article,
   Gallery,
   HeroCarouselConfig,
+  Achievement,
 } from '@/types';
 import { OFFICIAL_DIVISIONS } from '@/lib/constants/divisions';
+import { ORG_VISION, ORG_MISSIONS } from '@/lib/constants/identity';
+import { withTimeout } from '@/lib/utils';
 
 /**
  * In-memory TTL cache to eliminate redundant network roundtrips to Firestore.
@@ -40,65 +43,63 @@ function setInCache<T>(key: string, data: T): T {
   return data;
 }
 
-/**
- * Safety timeout: generous 8 seconds to prevent hanging during server start / network jitter,
- * without prematurely aborting normal cold gRPC handshakes.
- */
-async function withSafetyTimeout<T>(promise: Promise<T>, ms: number = 8000): Promise<T> {
-  let timer: NodeJS.Timeout;
-  const timeoutPromise = new Promise<T>((_, reject) => {
-    timer = setTimeout(() => reject(new Error('FIRESTORE_TIMEOUT')), ms);
-  });
-  return Promise.race([
-    promise.then((res) => {
-      clearTimeout(timer);
-      return res;
-    }),
-    timeoutPromise,
-  ]);
+const withSafetyTimeout = <T>(promise: Promise<T>): Promise<T> =>
+  withTimeout(promise, 8000, 'FIRESTORE_TIMEOUT');
+
+export type PublicCacheScope =
+  | 'periods'
+  | 'board'
+  | 'events'
+  | 'articles'
+  | 'galleries'
+  | 'carousel'
+  | 'achievements'
+  | 'all';
+
+const CACHE_PREFIXES: Record<Exclude<PublicCacheScope, 'all'>, string[]> = {
+  periods: ['public_periods'],
+  board: ['public_board_'],
+  events: ['public_events', 'public_event_'],
+  articles: ['published_articles_', 'published_article_'],
+  galleries: ['published_galleries_'],
+  carousel: ['public_hero_carousel'],
+  achievements: ['public_achievements'],
+};
+
+/** Hapus entri cache publik di memori agar mutasi dashboard segera terlihat. */
+export function invalidatePublicCache(scope: PublicCacheScope = 'all') {
+  if (scope === 'all') {
+    memoryCache.clear();
+    return;
+  }
+  const prefixes = CACHE_PREFIXES[scope];
+  for (const key of memoryCache.keys()) {
+    if (prefixes.some((p) => (p.endsWith('_') ? key.startsWith(p) : key === p))) {
+      memoryCache.delete(key);
+    }
+  }
+}
+
+/** Revalidate route Next.js secara aman (aman dipanggil dari unit test Node). */
+export function revalidatePublicPaths(paths: string[]) {
+  try {
+    for (const p of paths) revalidatePath(p);
+  } catch {
+    // Abaikan di luar runtime Next.js.
+  }
 }
 
 const FALLBACK_PERIOD: Period = {
   id: '2026-2027',
   cabinet_name: 'Kabinet Sinergi Inklusif',
   year_range: '2026/2027',
-  vision:
-    'Menjadikan GIBEI UNIMED sebagai episentrum literasi dan inklusi pasar modal unggulan yang kredibel, adaptif, dan berdaya saing global.',
-  missions: [
-    'Mengakselerasi literasi keuangan dan pasar modal bagi civitas akademika dan masyarakat umum.',
-    'Meningkatkan partisipasi aktif mahasiswa dalam Sekolah Pasar Modal (SPM) dan kompetisi investasi nasional.',
-    'Membangun budaya riset pasar modal yang analitis, independen, dan berintegritas tinggi.',
-    'Mengembangkan sistem tata kelola organisasi yang transparan, modern, dan berbasis teknologi digital.',
-  ],
+  vision: ORG_VISION,
+  missions: [...ORG_MISSIONS],
   is_current: true,
   created_at: '2026-01-01T00:00:00.000Z',
 };
 
 // ------------------------------------------------------------------ Periode & Divisi
-
-export const getCurrentPeriod = cache(async (): Promise<Period | null> => {
-  const cacheKey = 'current_period';
-  const cached = getFromCache<Period | null>(cacheKey);
-  if (cached !== null) return cached;
-
-  try {
-    const snap = await withSafetyTimeout(
-      adminDb.collection('periods').where('is_current', '==', true).limit(1).get()
-    );
-    if (!snap.empty) {
-      return setInCache(cacheKey, snap.docs[0].data() as Period);
-    }
-
-    // Fallback: take any available period
-    const anySnap = await withSafetyTimeout(adminDb.collection('periods').limit(1).get());
-    if (!anySnap.empty) {
-      return setInCache(cacheKey, anySnap.docs[0].data() as Period);
-    }
-    return setInCache(cacheKey, FALLBACK_PERIOD);
-  } catch {
-    return FALLBACK_PERIOD;
-  }
-});
 
 /** Semua periode (aktif + arsip), terbaru dulu. */
 export const getPublicPeriods = cache(async (): Promise<Period[]> => {
@@ -114,47 +115,6 @@ export const getPublicPeriods = cache(async (): Promise<Period[]> => {
     return setInCache(cacheKey, list.length > 0 ? list : [FALLBACK_PERIOD]);
   } catch {
     return [FALLBACK_PERIOD];
-  }
-});
-
-export const getPublicDivisions = cache(async (periodId?: string): Promise<Division[]> => {
-  const cacheKey = `public_divisions_${periodId || 'all'}`;
-  const cached = getFromCache<Division[]>(cacheKey);
-  if (cached) return cached;
-
-  try {
-    const col = adminDb.collection('divisions');
-    const snap = await withSafetyTimeout((periodId ? col.where('period_id', '==', periodId) : col).get());
-    const list = snap.docs
-      .map((doc: QueryDocumentSnapshot) => doc.data() as Division)
-      .sort((a, b) => a.order_index - b.order_index);
-
-    if (list.length > 0) {
-      return setInCache(cacheKey, list);
-    }
-
-    // Fallback static official divisions if empty
-    return Object.values(OFFICIAL_DIVISIONS).map((m) => ({
-      id: `2026-2027_${m.code.toLowerCase()}`,
-      period_id: '2026-2027',
-      code: m.code,
-      name: m.name,
-      slug: m.slug,
-      description: m.shortDesc,
-      head_user_id: null,
-      order_index: m.order,
-    }));
-  } catch {
-    return Object.values(OFFICIAL_DIVISIONS).map((m) => ({
-      id: `2026-2027_${m.code.toLowerCase()}`,
-      period_id: '2026-2027',
-      code: m.code,
-      name: m.name,
-      slug: m.slug,
-      description: m.shortDesc,
-      head_user_id: null,
-      order_index: m.order,
-    }));
   }
 });
 
@@ -194,20 +154,10 @@ export const getPublicEventsAndSpm = cache(async (): Promise<EventAndSpm[]> => {
       adminDb.collection('events').where('is_published', '==', true).get()
     );
 
-    let list = snap.docs.map((doc: QueryDocumentSnapshot) => ({
+    const list = snap.docs.map((doc: QueryDocumentSnapshot) => ({
       id: doc.id,
       ...(doc.data() as Omit<EventAndSpm, 'id'>),
     }));
-
-    if (list.length === 0) {
-      const fallbackSnap = await withSafetyTimeout(
-        adminDb.collection('events_and_spm').limit(10).get()
-      );
-      list = fallbackSnap.docs.map((doc: QueryDocumentSnapshot) => ({
-        id: doc.id,
-        ...(doc.data() as Omit<EventAndSpm, 'id'>),
-      }));
-    }
 
     const sorted = list.sort((a, b) => {
       const dateA = a.event_date || a.start_date || '';
@@ -242,11 +192,14 @@ export const getPublicEventBySlug = cache(async (slug: string): Promise<EventAnd
       return setInCache(cacheKey, data);
     }
 
-    // Direct ID check
+    // Direct ID check (tetap wajib terbit agar draft tidak bocor lewat URL ID)
     const docSnap = await withSafetyTimeout(adminDb.collection('events').doc(slug).get());
     if (docSnap.exists) {
-      const data = { id: docSnap.id, ...(docSnap.data() as Omit<EventAndSpm, 'id'>) };
-      return setInCache(cacheKey, data);
+      const raw = docSnap.data() as Omit<EventAndSpm, 'id'>;
+      if (raw.is_published) {
+        const data = { id: docSnap.id, ...raw };
+        return setInCache(cacheKey, data);
+      }
     }
 
     return null;
@@ -343,10 +296,6 @@ export const getPublishedGalleries = cache(async (limit?: number): Promise<Galle
 
 const HERO_CAROUSEL_CACHE_KEY = 'public_hero_carousel';
 
-export function invalidateHeroCarouselCache() {
-  memoryCache.delete(HERO_CAROUSEL_CACHE_KEY);
-}
-
 export const getPublicHeroCarousel = cache(async (): Promise<HeroCarouselConfig> => {
   const cached = getFromCache<HeroCarouselConfig>(HERO_CAROUSEL_CACHE_KEY);
   if (cached) return cached;
@@ -381,5 +330,24 @@ export const getPublicHeroCarousel = cache(async (): Promise<HeroCarouselConfig>
     return setInCache(HERO_CAROUSEL_CACHE_KEY, result);
   } catch {
     return fallback;
+  }
+});
+
+// ------------------------------------------------------------------ Prestasi GIBEI UNIMED
+
+/** Daftar prestasi GIBEI UNIMED untuk halaman /tentang, urut tahun terbaru. */
+export const getPublicAchievements = cache(async (): Promise<Achievement[]> => {
+  const cacheKey = 'public_achievements';
+  const cached = getFromCache<Achievement[]>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const snap = await withSafetyTimeout(adminDb.collection('achievements').get());
+    const list = snap.docs
+      .map((doc: QueryDocumentSnapshot) => doc.data() as Achievement)
+      .sort((a, b) => b.year - a.year || b.created_at.localeCompare(a.created_at));
+    return setInCache(cacheKey, list);
+  } catch {
+    return [];
   }
 });
