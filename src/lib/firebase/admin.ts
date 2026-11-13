@@ -5,22 +5,41 @@ import { getFirestore, Firestore, FieldValue, Timestamp } from 'firebase-admin/f
 
 const projectId = process.env.FIREBASE_PROJECT_ID;
 
+function formatPrivateKey(raw?: string): string | undefined {
+  if (!raw) return undefined;
+  let key = raw.trim();
+  // Hapus kutip ganda/tunggal di awal dan akhir jika ikut ter-copy dari .env
+  if (
+    (key.startsWith('"') && key.endsWith('"')) ||
+    (key.startsWith("'") && key.endsWith("'"))
+  ) {
+    key = key.slice(1, -1).trim();
+  }
+  return key.replace(/\\n/g, '\n').replace(/\r\n/g, '\n');
+}
+
 let app: App;
 if (getApps().length > 0) {
   app = getApp();
 } else {
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL?.trim();
+  const privateKey = formatPrivateKey(process.env.FIREBASE_PRIVATE_KEY);
 
   if (clientEmail && privateKey) {
-    app = initializeApp({
-      credential: cert({
+    try {
+      app = initializeApp({
+        credential: cert({
+          projectId,
+          clientEmail,
+          privateKey,
+        }),
         projectId,
-        clientEmail,
-        privateKey,
-      }),
-      projectId,
-    });
+      });
+    } catch (err) {
+      console.error('[Firebase Admin Init Error]', err);
+      // Fallback ke inisialisasi default agar tidak membunuh modul saat startup
+      app = initializeApp({ projectId });
+    }
   } else {
     app = initializeApp({
       projectId,
