@@ -261,15 +261,15 @@ export default function SejarahGibeiPage() {
           <p className="text-sm text-ink-muted max-w-xl mx-auto">
             Pelajari susunan pengurus aktif yang mengemban amanah periode ini atau daftarkan diri Anda pada Sekolah Pasar Modal (SPM) yang sedang dibuka.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <Link href="/struktur">
-              <Button variant="cerulean" size="lg" className="gap-2">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <Link href="/struktur" className="w-full sm:w-auto">
+              <Button variant="cerulean" size="lg" className="w-full sm:w-auto gap-2">
                 Lihat Struktur Pengurus
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
-            <Link href="/kegiatan">
-              <Button variant="outline" size="lg" className="gap-2">
+            <Link href="/kegiatan" className="w-full sm:w-auto">
+              <Button variant="outline" size="lg" className="w-full sm:w-auto gap-2">
                 <BookOpen className="h-4 w-4 text-cerulean" />
                 Jadwal Kegiatan & SPM
               </Button>

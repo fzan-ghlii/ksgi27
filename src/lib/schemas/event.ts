@@ -138,6 +138,8 @@ export const EventRegisterSchema = z.object({
     .max(150),
   has_rdn: z.boolean().optional().default(false),
   notes: z.string().trim().max(400).optional().default(''),
+  turnstile_token: z.string().trim().max(2048).optional(),
+  company_website: z.string().max(200).optional(),
 });
 
 export type EventRegisterInput = z.infer<typeof EventRegisterSchema>;
@@ -154,7 +156,7 @@ export type AttendanceUpdateInput = z.infer<typeof AttendanceUpdateSchema>;
 // ------------------------------------------------------------------ Webhook Google Form Payload
 
 export const GFormWebhookSchema = z.object({
-  secret_token: z.string().trim().min(1, 'Secret token wajib disertakan.'),
+  secret_token: z.string().trim().optional().default(''),
   event_id: z.string().trim().optional(),
   event_slug: z.string().trim().optional(),
   full_name: z.string().trim().min(2).max(100),

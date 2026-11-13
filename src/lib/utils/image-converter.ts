@@ -13,6 +13,18 @@ export interface ConvertedImageResult {
 }
 
 export const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1 MB dalam bytes
+export const MIN_LANDSCAPE_ASPECT_RATIO = 1.25; // Mendukung landscape (4:3, 16:10, 16:9, dll.), menolak portrait & persegi
+
+export function isLandscapeAspect(
+  width: number,
+  height: number,
+  minRatio: number = MIN_LANDSCAPE_ASPECT_RATIO
+): boolean {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    return false;
+  }
+  return width > height && width / height >= minRatio;
+}
 
 export async function convertImageToWebP(
   file: File,
@@ -20,11 +32,15 @@ export async function convertImageToWebP(
     maxWidth?: number;
     maxHeight?: number;
     quality?: number;
+    requireLandscape?: boolean;
+    minAspectRatio?: number;
   }
 ): Promise<ConvertedImageResult> {
   const maxWidth = options?.maxWidth ?? 1600;
   const maxHeight = options?.maxHeight ?? 1600;
   const quality = options?.quality ?? 0.82;
+  const requireLandscape = options?.requireLandscape ?? false;
+  const minAspectRatio = options?.minAspectRatio ?? MIN_LANDSCAPE_ASPECT_RATIO;
 
   // 1. Validasi Ukuran File (Maksimal 1 MB)
   if (file.size > MAX_FILE_SIZE) {
@@ -50,6 +66,15 @@ export async function convertImageToWebP(
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
+        if (requireLandscape && !isLandscapeAspect(img.width, img.height, minAspectRatio)) {
+          reject(
+            new Error(
+              `Foto carousel hanya boleh rasio landscape / 16:9 (dimensi foto Anda ${img.width}×${img.height} px, lebar harus lebih besar dari tinggi).`
+            )
+          );
+          return;
+        }
+
         let width = img.width;
         let height = img.height;
 

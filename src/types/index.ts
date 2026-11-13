@@ -193,6 +193,29 @@ export interface Gallery {
   updated_at?: string;
 }
 
+export type HeroBlurLevel = 'soft' | 'medium' | 'strong';
+
+export interface HeroCarouselSlide {
+  id: string;
+  image_url: string;
+  alt_text?: string;
+  caption?: string;
+  width: number;
+  height: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface HeroCarouselConfig {
+  slides: HeroCarouselSlide[];
+  autoplay_seconds: number;
+  blur_level: HeroBlurLevel;
+  overlay_opacity: number;
+  updated_at: string;
+  updated_by: string;
+  updated_by_name?: string;
+}
+
 export interface Announcement {
   id: string;
   title: string;
@@ -205,6 +228,86 @@ export interface Announcement {
   author_position: string;
   pinned: boolean;
   created_at: string;
+}
+
+export type PiketDay = 'SENIN' | 'SELASA' | 'RABU' | 'KAMIS' | 'JUMAT';
+export type PiketSession = 'PAGI' | 'SIANG';
+export type PiketVerificationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type PiketLocationStatus = 'IN_AREA' | 'OUT_OF_AREA';
+export type PiketTimeStatus = 'TEPAT_WAKTU' | 'LEBIH_AWAL' | 'TERLAMBAT' | 'DI_LUAR_SESI';
+
+export interface PiketSettings {
+  location_name: string;
+  latitude: number;
+  longitude: number;
+  radius_meters: number;
+  enforce_radius: boolean;
+  enforce_schedule: boolean;
+  updated_at: string;
+  updated_by: string;
+  updated_by_name?: string;
+}
+
+export interface PiketScheduleEntry {
+  id: string;
+  period_id: string;
+  day: PiketDay;
+  session: PiketSession;
+  user_id: string; // UID akun bila sudah aktivasi, atau '' jika belum
+  board_member_id: string; // ID dokumen board_members atau ''
+  member_name: string;
+  division_code: DivisionCode;
+  position_title: string;
+  role: Role;
+  created_by: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface PiketAttendance {
+  id: string;
+  period_id: string;
+  schedule_id?: string | null;
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  division_code: DivisionCode | string;
+  position_title: string;
+  date: string; // YYYY-MM-DD (Asia/Jakarta)
+  day: PiketDay | 'SABTU' | 'MINGGU';
+  session: PiketSession;
+  checked_in_at: string; // ISO
+  checked_in_wib: string; // e.g. "08:15 WIB"
+  photo_url: string;
+  latitude: number;
+  longitude: number;
+  accuracy_meters: number;
+  distance_meters: number;
+  location_status: PiketLocationStatus;
+  time_status: PiketTimeStatus;
+  is_scheduled_match: boolean;
+  notes?: string;
+  verification_status: PiketVerificationStatus;
+  verified_by?: string | null;
+  verified_by_name?: string | null;
+  verified_at?: string | null;
+  verification_note?: string | null;
+  supervisor_note?: string | null;
+  supervisor_name?: string | null;
+  supervisor_at?: string | null;
+}
+
+export interface PiketEligibleMember {
+  key: string; // user_id || board_member_id
+  user_id: string;
+  board_member_id: string;
+  full_name: string;
+  division_code: DivisionCode;
+  position_title: string;
+  role: Role;
+  photo_url?: string;
+  has_account: boolean;
+  is_mandatory_piket: boolean;
 }
 
 export interface AuditLog {

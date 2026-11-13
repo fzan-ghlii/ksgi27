@@ -239,10 +239,10 @@ export function SystemClient({
       </div>
 
       {/* Navigasi Tab Kendali */}
-      <div className="flex items-center gap-2 p-1.5 bg-secondary/50 rounded-2xl border border-border w-fit overflow-x-auto">
+      <div className="flex items-center gap-2 p-1.5 bg-secondary/50 rounded-2xl border border-border w-full sm:w-fit overflow-x-auto no-scrollbar flex-nowrap">
         <button
           onClick={() => setActiveTab('maintenance')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
             activeTab === 'maintenance'
               ? 'bg-white text-foreground shadow-xs border border-border'
               : 'text-muted-foreground hover:text-foreground'
@@ -254,7 +254,7 @@ export function SystemClient({
 
         <button
           onClick={() => setActiveTab('audit')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
             activeTab === 'audit'
               ? 'bg-white text-foreground shadow-xs border border-border'
               : 'text-muted-foreground hover:text-foreground'
@@ -266,7 +266,7 @@ export function SystemClient({
 
         <button
           onClick={() => setActiveTab('users')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
             activeTab === 'users'
               ? 'bg-white text-foreground shadow-xs border border-border'
               : 'text-muted-foreground hover:text-foreground'
@@ -278,7 +278,7 @@ export function SystemClient({
 
         <button
           onClick={() => setActiveTab('integrations')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
             activeTab === 'integrations'
               ? 'bg-white text-foreground shadow-xs border border-border'
               : 'text-muted-foreground hover:text-foreground'
@@ -408,8 +408,68 @@ export function SystemClient({
             </div>
           </div>
 
-          {/* Tabel Log */}
-          <div className="bg-white rounded-2xl border border-border shadow-xs overflow-hidden">
+          {/* Mobile Card View (md:hidden) */}
+          <div className="md:hidden space-y-3">
+            {filteredLogs.length === 0 ? (
+              <div className="bg-white p-8 rounded-2xl border border-border text-center text-xs text-muted-foreground">
+                Tidak ada log audit yang sesuai kriteria.
+              </div>
+            ) : (
+              filteredLogs.map((log) => (
+                <div key={log.id} className="bg-white p-4 rounded-2xl border border-border shadow-xs space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-bold text-sm text-foreground">{log.actor_name || log.actor_email || log.actor_uid}</div>
+                      <span className="text-[10px] font-semibold text-primary uppercase">
+                        {log.actor_role}
+                      </span>
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-black tracking-wide shrink-0 ${
+                        log.action === 'CREATE'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : log.action === 'DELETE'
+                          ? 'bg-rose-100 text-rose-800'
+                          : log.action === 'ROLE_CHANGE'
+                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                          : log.action === 'SYNC_SHEET'
+                          ? 'bg-sky-100 text-sky-800'
+                          : 'bg-slate-100 text-slate-800'
+                      }`}
+                    >
+                      {log.action}
+                    </span>
+                  </div>
+
+                  <div className="text-xs space-y-1 pt-2 border-t border-border/60">
+                    <div className="flex items-center justify-between text-muted-foreground text-[11px]">
+                      <span>Target:</span>
+                      <span className="font-semibold text-foreground text-right truncate max-w-[200px]">
+                        {log.target_label || log.target_id}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-muted-foreground text-[11px]">
+                      <span>Tipe:</span>
+                      <span className="uppercase text-[10px]">{log.target_type || log.target_collection}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-muted-foreground text-[11px]">
+                      <span>Waktu:</span>
+                      <span className="font-mono">{log.timestamp || log.created_at ? new Date(log.timestamp || log.created_at!).toLocaleString('id-ID') : '-'}</span>
+                    </div>
+                  </div>
+
+                  {(log.summary || log.detail) && (
+                    <div className="p-2.5 rounded-xl bg-secondary/30 text-[11px] text-muted-foreground leading-relaxed break-words">
+                      {log.summary || JSON.stringify(log.detail)}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Tabel Log Desktop (hidden md:block) */}
+          <div className="hidden md:block bg-white rounded-2xl border border-border shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-secondary/40 border-b border-border text-muted-foreground font-semibold">
@@ -493,7 +553,129 @@ export function SystemClient({
             </span>
           </div>
 
-          <div className="bg-white rounded-2xl border border-border shadow-xs overflow-hidden">
+          {/* Mobile Card View (md:hidden) */}
+          <div className="md:hidden space-y-3">
+            {filteredUsers.length === 0 ? (
+              <div className="bg-white p-8 rounded-2xl border border-border text-center text-xs text-muted-foreground">
+                Tidak ada pengguna yang cocok dengan pencarian.
+              </div>
+            ) : (
+              filteredUsers.map((u) => {
+                const isEditing = editingUserUid === u.uid;
+                return (
+                  <div key={u.uid} className="bg-white p-4 rounded-2xl border border-border shadow-xs space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="font-bold text-sm text-foreground">{u.full_name || 'Tanpa Nama'}</div>
+                        <div className="text-xs text-muted-foreground">{u.email}</div>
+                        {u.nim && <div className="text-[10px] font-mono text-muted-foreground mt-0.5">NIM: {u.nim}</div>}
+                      </div>
+                      <button
+                        onClick={() => handleToggleUserActive(u)}
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all shrink-0 ${
+                          u.is_active !== false
+                            ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                            : 'bg-rose-100 text-rose-800 hover:bg-rose-200'
+                        }`}
+                      >
+                        {u.is_active !== false ? 'Aktif' : 'Nonaktif'}
+                      </button>
+                    </div>
+
+                    <div className="pt-2 border-t border-border/60 space-y-2 text-xs">
+                      {isEditing ? (
+                        <div className="space-y-2 bg-secondary/30 p-3 rounded-xl border border-border">
+                          <div>
+                            <label className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">
+                              Tingkatan Role:
+                            </label>
+                            <select
+                              value={selectedRole}
+                              onChange={(e) => setSelectedRole(e.target.value)}
+                              className="w-full px-2 py-1.5 rounded-lg text-xs border border-border bg-white"
+                            >
+                              <option value="creator">Presidium Utama</option>
+                              <option value="master_presidium">Presidium</option>
+                              <option value="admin_kadiv">Kepala Divisi</option>
+                              <option value="member">Anggota</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">
+                              Divisi Resmi:
+                            </label>
+                            <select
+                              value={selectedDivision}
+                              onChange={(e) => setSelectedDivision(e.target.value)}
+                              className="w-full px-2 py-1.5 rounded-lg text-xs border border-border bg-white"
+                            >
+                              {Object.values(OFFICIAL_DIVISIONS).map((d) => (
+                                <option key={d.code} value={d.code}>
+                                  {d.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="flex items-center gap-2 pt-2">
+                            <Button
+                              size="sm"
+                              disabled={updatingUser}
+                              onClick={() => handleSaveUserOverride(u.uid)}
+                              className="bg-gold hover:bg-gold-hover text-ink font-bold text-xs flex-1 h-8"
+                            >
+                              {updatingUser ? <Loader2 className="w-3.5 h-3.5 animate-spin text-ink mr-1" /> : null}
+                              Simpan
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setEditingUserUid(null)}
+                              className="text-xs h-8 px-3"
+                            >
+                              Batal
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground text-[11px]">Role:</span>
+                            <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-primary/10 text-primary border border-primary/20">
+                              {u.role === 'creator' ? 'Presidium Utama' : u.role}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground text-[11px]">Divisi:</span>
+                            <span className="font-semibold text-foreground">
+                              {u.division_code ? OFFICIAL_DIVISIONS[u.division_code]?.name || u.division_code : '-'}
+                            </span>
+                          </div>
+                          <div className="pt-1 flex justify-end">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingUserUid(u.uid);
+                                setSelectedRole(u.role);
+                                setSelectedDivision(u.division_code || 'PRESIDIUM');
+                              }}
+                              className="text-primary hover:text-primary hover:bg-primary/10 text-xs h-7 px-3 w-full"
+                            >
+                              <Edit className="w-3.5 h-3.5 mr-1" />
+                              Ubah Hak Akses
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop Table View (hidden md:block) */}
+          <div className="hidden md:block bg-white rounded-2xl border border-border shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-secondary/40 border-b border-border text-muted-foreground font-semibold">
@@ -524,14 +706,14 @@ export function SystemClient({
                               onChange={(e) => setSelectedRole(e.target.value)}
                               className="px-2 py-1 rounded-lg text-xs border border-border bg-white"
                             >
-                              <option value="creator">Creator (Superuser)</option>
+                              <option value="creator">Presidium Utama</option>
                               <option value="master_presidium">Presidium</option>
                               <option value="admin_kadiv">Kepala Divisi</option>
                               <option value="member">Anggota</option>
                             </select>
                           ) : (
                             <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-primary/10 text-primary border border-primary/20">
-                              {u.role}
+                              {u.role === 'creator' ? 'Presidium Utama' : u.role}
                             </span>
                           )}
                         </td>

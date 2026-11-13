@@ -1,5 +1,6 @@
 import 'server-only';
 import { cache } from 'react';
+import { randomBytes } from 'node:crypto';
 import { adminDb } from '@/lib/firebase/admin';
 import type { AuditAction, AuditLogEntry, DivisionCode, Role, UserProfile } from '@/types';
 import { forbidden, notFound } from '@/lib/errors';
@@ -21,7 +22,7 @@ const DEFAULT_CONFIG: SystemConfig = {
   maintenance_mode: false,
   maintenance_message: 'Sistem GIBEI UNIMED sedang dalam pemeliharaan berkala untuk peningkatan layanan. Silakan kembali beberapa saat lagi.',
   default_spreadsheet_id: '',
-  gform_webhook_secret: 'gibei-webhook-secret-key-2027',
+  gform_webhook_secret: '',
   updated_at: new Date().toISOString(),
   updated_by: 'system',
 };
@@ -50,9 +51,14 @@ export const getSystemConfig = cache(async (): Promise<SystemConfig> => {
 
   try {
     const doc = await adminDb.doc(SYSTEM_CONFIG_DOC).get();
-    let data = DEFAULT_CONFIG;
+    let data: SystemConfig;
     if (!doc.exists) {
-      await adminDb.doc(SYSTEM_CONFIG_DOC).set(DEFAULT_CONFIG);
+      data = {
+        ...DEFAULT_CONFIG,
+        gform_webhook_secret: randomBytes(24).toString('hex'),
+        updated_at: new Date().toISOString(),
+      };
+      await adminDb.doc(SYSTEM_CONFIG_DOC).set(data);
     } else {
       data = { ...DEFAULT_CONFIG, ...(doc.data() as Partial<SystemConfig>) };
     }
@@ -204,6 +210,8 @@ export async function getSystemMetrics(actor: UserProfile) {
     'events',
     'registrations',
     'invitations',
+    'piket_schedules',
+    'piket_attendances',
     'audit_logs',
     'users',
   ];

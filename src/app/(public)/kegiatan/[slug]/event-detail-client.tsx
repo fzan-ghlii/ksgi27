@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { TurnstileWidget, isTurnstileClientEnabled } from '@/components/shared/turnstile-widget';
 import { toast } from 'sonner';
 import {
   Calendar,
@@ -40,6 +41,9 @@ export function EventDetailClient({ event }: EventDetailClientProps) {
   const [institution, setInstitution] = React.useState('');
   const [hasRdn, setHasRdn] = React.useState(false);
   const [notes, setNotes] = React.useState('');
+  const [companyWebsite, setCompanyWebsite] = React.useState('');
+  const [turnstileToken, setTurnstileToken] = React.useState('');
+  const [turnstileReset, setTurnstileReset] = React.useState(0);
   const [submitting, setSubmitting] = React.useState(false);
   const [registeredSuccess, setRegisteredSuccess] = React.useState(false);
 
@@ -94,6 +98,11 @@ export function EventDetailClient({ event }: EventDetailClientProps) {
       return;
     }
 
+    if (isTurnstileClientEnabled && !turnstileToken) {
+      toast.error('Harap selesaikan verifikasi keamanan terlebih dahulu.');
+      return;
+    }
+
     try {
       setSubmitting(true);
       const res = await fetch(`/api/events/${event.id}/register`, {
@@ -107,6 +116,8 @@ export function EventDetailClient({ event }: EventDetailClientProps) {
           institution: institution.trim(),
           has_rdn: hasRdn,
           notes: notes.trim() || undefined,
+          turnstile_token: turnstileToken || undefined,
+          company_website: companyWebsite || undefined,
         }),
       });
 
@@ -123,6 +134,10 @@ export function EventDetailClient({ event }: EventDetailClientProps) {
       toast.error(msg);
     } finally {
       setSubmitting(false);
+      if (isTurnstileClientEnabled) {
+        setTurnstileReset((v) => v + 1);
+        setTurnstileToken('');
+      }
     }
   };
 
@@ -471,9 +486,29 @@ export function EventDetailClient({ event }: EventDetailClientProps) {
                   />
                 </div>
 
+                {/* Honeypot anti-bot tersembunyi */}
+                <div className="sr-only" aria-hidden="true">
+                  <label htmlFor="company_website">Website</label>
+                  <input
+                    id="company_website"
+                    name="company_website"
+                    type="text"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={companyWebsite}
+                    onChange={(e) => setCompanyWebsite(e.target.value)}
+                  />
+                </div>
+
+                <TurnstileWidget
+                  action="event_register"
+                  onTokenChange={setTurnstileToken}
+                  resetSignal={turnstileReset}
+                />
+
                 <Button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || (isTurnstileClientEnabled && !turnstileToken)}
                   className="w-full bg-gold hover:bg-gold-hover text-ink font-black text-xs py-3 rounded-2xl shadow-sm transition-all"
                 >
                   {submitting ? (

@@ -161,5 +161,56 @@ export function canManageCalendarAndAnnouncements(user: { role: Role; position_t
   );
 }
 
+// ---------------------------------------------------------------- Piket Galeri & Absensi
+
+export interface PiketActor extends Actor {
+  position_title?: string | null;
+}
+
+/**
+ * Mengatur jadwal piket, lokasi galeri, dan verifikasi laporan hasil absensi:
+ * - Kadiv Galeri (role admin_kadiv & division GALERI)
+ * - Wakadiv Galeri (division GALERI dengan jabatan Wakadiv / Wakil Kepala Divisi)
+ * - Creator (akses dukungan sistem internal)
+ */
+export function canManagePiket(a: PiketActor): boolean {
+  if (a.role === 'creator') return true;
+  if (a.division_code !== 'GALERI') return false;
+  if (a.role === 'admin_kadiv') return true;
+
+  const pos = (a.position_title || '').toLowerCase();
+  return (
+    pos.includes('kadiv') ||
+    pos.includes('kepala divisi') ||
+    pos.includes('wakadiv') ||
+    pos.includes('wakil kepala') ||
+    pos.includes('wakil ketua') ||
+    pos.includes('wakil divisi')
+  );
+}
+
+/** Presidium bertindak sebagai pengawas seluruh pelaksanaan dan laporan piket. */
+export function canSupervisePiket(a: PiketActor): boolean {
+  return a.role === 'master_presidium' || a.role === 'creator';
+}
+
+/** Melihat seluruh laporan absensi piket lintas pengurus & mengekspor rekap. */
+export function canViewAllPiketReports(a: PiketActor): boolean {
+  return canManagePiket(a) || canSupervisePiket(a);
+}
+
+/** Melakukan absensi piket (semua pengurus non-Presidium wajib piket). */
+export function canSubmitPiketAttendance(a: PiketActor): boolean {
+  if (a.role === 'master_presidium' || a.division_code === 'PRESIDIUM') return false;
+  return a.role === 'member' || a.role === 'admin_kadiv' || a.role === 'creator';
+}
+
+// ---------------------------------------------------------------- Hero Carousel Beranda
+
+/** Pengaturan carousel background beranda hanya boleh diatur oleh Presidium. */
+export function canManageHeroCarousel(a: Actor): boolean {
+  return isPresidiumUp(a);
+}
+
 
 

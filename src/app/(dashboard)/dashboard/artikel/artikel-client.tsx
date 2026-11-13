@@ -238,8 +238,150 @@ export function ArtikelClient({ user, initialArticles }: ArtikelClientProps) {
           onAction={() => router.push('/dashboard/artikel/baru')}
         />
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-sm">
-          <table className="w-full text-sm">
+        <div className="rounded-2xl border border-line bg-white shadow-sm overflow-hidden">
+          {/* Mobile View: Kartu Artikel Praktis */}
+          <div className="md:hidden divide-y divide-line">
+            {filteredArticles.map((art) => {
+              const canEdit = canEditArticle(user, art);
+              const canDelete = canDeleteArticle(user, art);
+              const canSubmit = canSubmitArticle(user, art);
+              const canReview = canReviewArticle(user, art);
+              const canUnpub = canUnpublishArticle(user) && art.status === 'PUBLISHED';
+
+              return (
+                <div key={art.id} className="p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <ImagePreview src={art.thumbnail_url ?? ''} className="h-14 w-14 rounded-xl shrink-0" />
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <ArticleStatusBadge status={art.status} />
+                        <Badge variant="cerulean" className="text-[10px] py-0 px-1.5">
+                          {art.division_code}
+                        </Badge>
+                        {art.is_featured && (
+                          <Badge variant="gold" className="text-[10px] py-0 px-1.5 font-bold">
+                            Unggulan
+                          </Badge>
+                        )}
+                      </div>
+                      <h4 className="font-bold text-sm text-ink leading-snug line-clamp-2">
+                        {art.title}
+                      </h4>
+                      <p className="text-[11px] text-ink-muted">
+                        Oleh {art.author_name} • {formatDate(art.published_at || art.updated_at || art.created_at)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {art.review_note && art.status === 'REJECTED' && (
+                    <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 italic">
+                      Revisi: {art.review_note}
+                    </div>
+                  )}
+
+                  <div className="pt-2 border-t border-line/60 flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-[11px] text-ink-muted">
+                      <strong>{art.view_count || 0}</strong> views • ~{art.reading_minutes || 1} mnt
+                    </span>
+
+                    <div className="flex items-center gap-1">
+                      {canReview && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="cerulean"
+                            className="h-8 px-2 text-xs font-bold gap-1"
+                            onClick={() =>
+                              setReviewModal({
+                                open: true,
+                                article: art,
+                                decision: 'publish',
+                                note: '',
+                                busy: false,
+                              })
+                            }
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5" /> Terbitkan
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 px-2 text-xs text-rose-600 hover:bg-rose-50"
+                            onClick={() =>
+                              setReviewModal({
+                                open: true,
+                                article: art,
+                                decision: 'reject',
+                                note: '',
+                                busy: false,
+                              })
+                            }
+                          >
+                            Tolak
+                          </Button>
+                        </>
+                      )}
+
+                      {canSubmit && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 px-2 text-xs gap-1 text-cerulean-dark border-cerulean/30"
+                          onClick={() => handleSubmitDraft(art)}
+                        >
+                          <Send className="h-3.5 w-3.5" /> Ajukan Review
+                        </Button>
+                      )}
+
+                      {art.status === 'PUBLISHED' && (
+                        <Link href={`/artikel/${art.slug}`} target="_blank">
+                          <Button size="icon" variant="ghost" className="h-8 w-8" title="Lihat di Web">
+                            <ExternalLink className="h-3.5 w-3.5 text-ink-muted" />
+                          </Button>
+                        </Link>
+                      )}
+
+                      {canEdit && (
+                        <Link href={`/dashboard/artikel/${art.id}/edit`}>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" title="Edit">
+                            <Pencil className="h-3.5 w-3.5 text-ink-muted" />
+                          </Button>
+                        </Link>
+                      )}
+
+                      {canUnpub && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-amber-600"
+                          title="Tarik Publikasi"
+                          onClick={() => setUnpublishConfirm({ open: true, article: art })}
+                        >
+                          <XCircle className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+
+                      {canDelete && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-rose-600 hover:bg-rose-50"
+                          title="Hapus"
+                          onClick={() => setDeleteConfirm({ open: true, article: art })}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-sm">
             <thead className="bg-surface/70 text-[11px] uppercase tracking-wider text-ink-muted">
               <tr>
                 <th className="px-4 py-3 text-left font-bold">Artikel</th>
@@ -408,7 +550,8 @@ export function ArtikelClient({ user, initialArticles }: ArtikelClientProps) {
             </tbody>
           </table>
         </div>
-      )}
+      </div>
+    )}
 
       {/* Review Modal */}
       <Modal

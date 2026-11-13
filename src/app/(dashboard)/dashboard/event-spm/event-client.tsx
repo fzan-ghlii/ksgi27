@@ -120,7 +120,7 @@ export function EventClient({ user, initialEvents, periods }: EventClientProps) 
       {/* Filter Bar */}
       <div className="bg-white p-4 rounded-2xl border border-border shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         {/* Tab Kategori */}
-        <div className="flex items-center gap-1.5 p-1 bg-secondary/50 rounded-xl border border-border/60 self-start md:self-auto overflow-x-auto">
+        <div className="flex items-center gap-1.5 p-1 bg-secondary/50 rounded-xl border border-border/60 w-full md:w-auto overflow-x-auto no-scrollbar">
           <button
             onClick={() => setCategoryFilter('ALL')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${

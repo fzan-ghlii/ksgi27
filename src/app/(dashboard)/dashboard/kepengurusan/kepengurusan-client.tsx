@@ -243,7 +243,7 @@ export function KepengurusanClient({ user, periods, selectedPeriodId, divisions,
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5 p-1.5 rounded-2xl bg-surface border border-line w-fit max-w-full">
+          <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-surface border border-line overflow-x-auto no-scrollbar flex-nowrap sm:flex-wrap w-full sm:w-fit max-w-full">
             {[{ code: 'ALL' as const, name: 'Semua' }, ...DIVISION_LIST].map((d) => {
               const active = divisionFilter === d.code;
               const count = d.code === 'ALL' ? members.length : members.filter((m) => m.division_code === d.code).length;

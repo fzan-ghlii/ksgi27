@@ -86,6 +86,17 @@ export async function requireUser(minRole: Role = 'member'): Promise<UserProfile
 
 export async function clearSession(): Promise<void> {
   const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+
+  if (sessionCookie) {
+    try {
+      const decoded = await adminAuth.verifySessionCookie(sessionCookie, false);
+      await adminAuth.revokeRefreshTokens(decoded.uid);
+    } catch {
+      // Cookie kedaluwarsa/tidak valid tetap dihapus agar proses keluar berhasil.
+    }
+  }
+
   cookieStore.delete(SESSION_COOKIE_NAME);
 }
 

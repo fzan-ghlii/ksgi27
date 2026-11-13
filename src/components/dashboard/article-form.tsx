@@ -134,13 +134,14 @@ export function ArticleForm({ user, initialArticle }: ArticleFormProps) {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={() => handleSave('draft')}
             disabled={submittingAction !== null}
+            className="flex-1 sm:flex-initial"
           >
             {submittingAction === 'draft' && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             Simpan Draf
@@ -150,7 +151,7 @@ export function ArticleForm({ user, initialArticle }: ArticleFormProps) {
             type="button"
             variant="cerulean"
             size="sm"
-            className="gap-1.5"
+            className="gap-1.5 flex-1 sm:flex-initial"
             onClick={() => handleSave('submit')}
             disabled={submittingAction !== null}
           >
@@ -159,7 +160,7 @@ export function ArticleForm({ user, initialArticle }: ArticleFormProps) {
             ) : (
               <Send className="h-3.5 w-3.5" />
             )}
-            Kirim untuk Review
+            Kirim Review
           </Button>
 
           {canPublish && (
@@ -167,7 +168,7 @@ export function ArticleForm({ user, initialArticle }: ArticleFormProps) {
               type="button"
               variant="gold"
               size="sm"
-              className="gap-1.5"
+              className="gap-1.5 w-full sm:w-auto font-bold"
               onClick={() => handleSave('publish')}
               disabled={submittingAction !== null}
             >
@@ -352,7 +353,7 @@ export function ArticleForm({ user, initialArticle }: ArticleFormProps) {
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
                     placeholder="Mulai tulis artikel Anda dengan Markdown... (Gunakan ## Subjudul, **tebal**, *miring*, > kutipan, - daftar poin)"
-                    className="min-h-[420px] font-mono text-sm leading-relaxed"
+                    className="min-h-[320px] sm:min-h-[420px] font-mono text-sm leading-relaxed"
                     disabled={submittingAction !== null}
                   />
                   <div className="flex items-center justify-between text-[11px] text-ink-muted px-1">
@@ -361,7 +362,7 @@ export function ArticleForm({ user, initialArticle }: ArticleFormProps) {
                   </div>
                 </div>
               ) : (
-                <div className="min-h-[420px] rounded-lg border border-line bg-surface/30 p-5 sm:p-6 overflow-y-auto max-h-[600px]">
+                <div className="min-h-[320px] sm:min-h-[420px] rounded-lg border border-line bg-surface/30 p-4 sm:p-6 overflow-y-auto max-h-[600px]">
                   {content.trim() ? (
                     <MarkdownRenderer content={content} />
                   ) : (

@@ -42,6 +42,7 @@
 html {
   -webkit-tap-highlight-color: transparent;
   scroll-behavior: smooth;
+  overscroll-behavior: none;
 }
 
 body {
@@ -50,7 +51,8 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   min-height: 100vh;
   min-height: 100dvh;
-  overflow-x: hidden;
+  overflow-x: clip;
+  overscroll-behavior: none;
 }
 
 /* Mobile Touch Optimization & iOS Safari Auto-Zoom Fix */

@@ -48,15 +48,15 @@ export function BentoGrid() {
                   Sekolah Pasar Modal (SPM)
                 </h3>
                 <p className="text-sm text-ink-muted mt-2 leading-relaxed max-w-md">
-                  Pelatihan berjenjang resmi (Level 1, 2, dan 3) yang dibimbing langsung oleh Bursa Efek Indonesia dan analis sekuritas berlisensi, lengkap dengan pembukaan Rekening Dana Nasabah (RDN).
+                  Pelatihan berjenjang resmi (Level 1 Pengenalan Investasi, Level 2 Belajar Saham, serta Level Lanjutan Analisis Fundamental & Teknikal) yang dibimbing langsung oleh BEI dan praktisi pasar modal berlisensi, lengkap dengan pembukaan Rekening Dana Nasabah (RDN).
                 </p>
               </div>
 
               {/* Stats pill */}
               <div className="grid grid-cols-3 gap-2 pt-2">
                 <div className="p-3 rounded-xl bg-white border border-line">
-                  <div className="text-xl font-black text-cerulean">3</div>
-                  <div className="text-[11px] text-ink-muted font-medium">Tingkatan Level</div>
+                  <div className="text-xl font-black text-cerulean">4</div>
+                  <div className="text-[11px] text-ink-muted font-medium">Tingkat Level</div>
                 </div>
                 <div className="p-3 rounded-xl bg-white border border-line">
                   <div className="text-xl font-black text-cyan">100%</div>

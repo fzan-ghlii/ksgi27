@@ -12,7 +12,13 @@ import {
   canApproveGallery,
   canEditGallery,
   canDeleteGallery,
+  canManagePiket,
+  canSupervisePiket,
+  canViewAllPiketReports,
+  canSubmitPiketAttendance,
+  canManageHeroCarousel,
   type Actor,
+  type PiketActor,
   type ArticleRef,
 } from './permissions';
 
@@ -114,6 +120,62 @@ describe('Galeri', () => {
     expect(canDeleteGallery(member, { ...g, status: 'PUBLISHED' })).toBe(false);
     expect(canDeleteGallery(kadivMedia, g)).toBe(false); // hapus = Presidium/Creator
     expect(canDeleteGallery(presidium, { ...g, status: 'PUBLISHED' })).toBe(true);
+  });
+});
+
+describe('Piket Galeri & Pengawasan', () => {
+  const wakadivGaleri: PiketActor = {
+    uid: 'wg1',
+    role: 'member',
+    division_code: 'GALERI',
+    position_title: 'Wakil Kepala Divisi Galeri',
+  };
+  const stafGaleri: PiketActor = {
+    uid: 'sg1',
+    role: 'member',
+    division_code: 'GALERI',
+    position_title: 'Staf Divisi Galeri',
+  };
+
+  it('hanya Kadiv & Wakadiv Galeri (+ Creator) yang mengelola jadwal dan laporan piket', () => {
+    expect(canManagePiket(kadivGaleri)).toBe(true);
+    expect(canManagePiket(wakadivGaleri)).toBe(true);
+    expect(canManagePiket(creator)).toBe(true);
+
+    expect(canManagePiket(stafGaleri)).toBe(false);
+    expect(canManagePiket(kadivEdu)).toBe(false);
+    expect(canManagePiket(member)).toBe(false);
+    expect(canManagePiket(presidium)).toBe(false);
+  });
+
+  it('Presidium bertugas sebagai pengawas dan dapat melihat semua laporan', () => {
+    expect(canSupervisePiket(presidium)).toBe(true);
+    expect(canViewAllPiketReports(presidium)).toBe(true);
+    expect(canViewAllPiketReports(kadivGaleri)).toBe(true);
+    expect(canViewAllPiketReports(wakadivGaleri)).toBe(true);
+    expect(canViewAllPiketReports(member)).toBe(false);
+    expect(canViewAllPiketReports(kadivMedia)).toBe(false);
+  });
+
+  it('semua pengurus selain Presidium wajib melakukan absen piket termasuk Kadiv/Wakadiv Galeri', () => {
+    expect(canSubmitPiketAttendance(member)).toBe(true);
+    expect(canSubmitPiketAttendance(kadivEdu)).toBe(true);
+    expect(canSubmitPiketAttendance(kadivGaleri)).toBe(true);
+    expect(canSubmitPiketAttendance(wakadivGaleri)).toBe(true);
+    expect(canSubmitPiketAttendance(stafGaleri)).toBe(true);
+
+    expect(canSubmitPiketAttendance(presidium)).toBe(false);
+  });
+});
+
+describe('Carousel Hero Beranda', () => {
+  it('hanya Presidium yang dapat mengatur carousel hero beranda', () => {
+    expect(canManageHeroCarousel(presidium)).toBe(true);
+    expect(canManageHeroCarousel(creator)).toBe(true);
+    expect(canManageHeroCarousel(kadivMedia)).toBe(false);
+    expect(canManageHeroCarousel(kadivGaleri)).toBe(false);
+    expect(canManageHeroCarousel(kadivHrd)).toBe(false);
+    expect(canManageHeroCarousel(member)).toBe(false);
   });
 });
 

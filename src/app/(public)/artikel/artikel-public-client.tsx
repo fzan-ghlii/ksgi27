@@ -73,7 +73,7 @@ export function ArtikelPublicClient({ initialArticles }: ArtikelPublicClientProp
         </div>
 
         {/* Categories Bar */}
-        <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-nowrap sm:flex-wrap pb-1 md:pb-0">
           {categories.map((cat) => {
             const active = selectedCategory === cat;
             return (

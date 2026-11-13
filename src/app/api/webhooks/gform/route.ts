@@ -2,16 +2,32 @@ import { NextResponse } from 'next/server';
 import { errorResponse, readJson } from '@/lib/api/route';
 import { GFormWebhookSchema } from '@/lib/schemas/event';
 import { getSystemConfig } from '@/lib/data/system';
-import { forbidden, badRequest } from '@/lib/errors';
+import { badRequest, forbidden } from '@/lib/errors';
 import { registerParticipant } from '@/lib/data/events';
+import { timingSafeSecretEqual } from '@/lib/security/guards';
+import {
+  enforceRateLimit,
+  getClientIp,
+  RATE_LIMIT_POLICIES,
+  rateLimitErrorResponse,
+} from '@/lib/security/rate-limit';
 
 export async function POST(req: Request) {
   try {
+    const ip = getClientIp(req);
+    const rl = await enforceRateLimit(RATE_LIMIT_POLICIES.webhookGform, ip);
+    if (!rl.allowed) {
+      return rateLimitErrorResponse(rl, 'Rate limit webhook tercapai.');
+    }
+
     const input = await readJson(req, GFormWebhookSchema);
     const config = await getSystemConfig();
 
-    // Verifikasi secret token webhook
-    if (input.secret_token !== config.gform_webhook_secret) {
+    const providedSecret = req.headers.get('x-webhook-secret') || input.secret_token;
+    const expectedSecret = process.env.GFORM_WEBHOOK_SECRET || config.gform_webhook_secret;
+
+    // Verifikasi secret token webhook secara constant-time (mendukung header x-webhook-secret maupun payload)
+    if (!timingSafeSecretEqual(providedSecret, expectedSecret)) {
       throw forbidden('Secret token webhook tidak valid.');
     }
 

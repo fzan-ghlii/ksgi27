@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { TrendingUp, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import { GibeiLogo } from '@/components/shared/logo';
 
 export default function AuthLayout({
   children,
@@ -9,11 +10,9 @@ export default function AuthLayout({
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-surface via-background to-background">
       {/* Top minimal header */}
-      <div className="container mx-auto px-4 py-6 max-w-7xl flex items-center justify-between">
+      <div className="container mx-auto px-4 py-4 sm:py-6 max-w-7xl flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-cerulean to-cyan flex items-center justify-center text-white shadow-sm shadow-cerulean/20">
-            <TrendingUp className="h-4 w-4" />
-          </div>
+          <GibeiLogo className="h-9 w-9 shadow-sm shadow-cerulean/20" iconClassName="h-5 w-5" />
           <span className="font-extrabold text-base text-ink">GIBEI UNIMED</span>
         </Link>
 

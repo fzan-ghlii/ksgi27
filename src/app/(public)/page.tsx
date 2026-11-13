@@ -13,28 +13,36 @@ import {
 import { Button } from '@/components/ui/button';
 import { BentoGrid } from '@/components/public/bento-grid';
 import { EventCard } from '@/components/public/event-card';
+import { HeroBackgroundCarousel } from '@/components/public/hero-background-carousel';
 import { 
   getPublicEventsAndSpm, 
   getPublishedArticles, 
-  getPublishedGalleries 
+  getPublishedGalleries,
+  getPublicHeroCarousel,
 } from '@/lib/data/public';
 import { markdownExcerpt } from '@/lib/utils/content';
 import { formatDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
 export default async function HomePage() {
-  const [events, articles, galleries] = await Promise.all([
+  const [events, articles, galleries, heroCarousel] = await Promise.all([
     getPublicEventsAndSpm(),
     getPublishedArticles(3),
     getPublishedGalleries(4),
+    getPublicHeroCarousel(),
   ]);
+
+  const hasCarouselSlides = heroCarousel.slides.length > 0;
 
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-12 pb-20 lg:pt-20 lg:pb-28 bg-gradient-to-b from-surface/60 via-background to-background">
-        {/* Soft background decorative glows */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-tr from-cerulean/10 via-cyan/10 to-transparent blur-3xl pointer-events-none" />
+        {hasCarouselSlides ? (
+          <HeroBackgroundCarousel config={heroCarousel} />
+        ) : (
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-tr from-cerulean/10 via-cyan/10 to-transparent blur-3xl pointer-events-none" />
+        )}
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl relative z-10">
           <div className="max-w-3xl mx-auto text-center space-y-6">
@@ -47,16 +55,16 @@ export default async function HomePage() {
             </div>
 
             {/* Main Headline */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-ink tracking-tight leading-[1.15]">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-ink tracking-tight leading-[1.15] drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
               Episentrum Literasi &{' '}
-              <span className="bg-gradient-to-r from-cerulean to-cyan bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-cerulean-dark to-cerulean bg-clip-text text-transparent">
                 Riset Pasar Modal
               </span>{' '}
               Kampus
             </h1>
 
             {/* Subtitle */}
-            <p className="text-base sm:text-lg text-ink-muted leading-relaxed max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg text-ink font-semibold leading-relaxed max-w-2xl mx-auto drop-shadow-[0_1px_1px_rgba(255,255,255,0.85)]">
               Wadah resmi edukasi investasi saham, reksa dana, dan obligasi bagi mahasiswa Universitas Negeri Medan yang bersinergi langsung dengan Bursa Efek Indonesia dan mitra sekuritas.
             </p>
 
@@ -76,7 +84,7 @@ export default async function HomePage() {
             </div>
 
             {/* Trust Pills */}
-            <div className="pt-8 flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-xs font-semibold text-ink-muted">
+            <div className="pt-8 flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-xs font-bold text-ink/90 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-cerulean" />
                 <span>Terdaftar & Resmi BEI</span>

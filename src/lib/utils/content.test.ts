@@ -32,7 +32,8 @@ describe('isValidImageRef', () => {
     expect(isValidImageRef('https://images.unsplash.com/photo-1?w=600')).toBe(true);
     expect(isValidImageRef('/gambar/artikel/saham-1.webp')).toBe(true);
   });
-  it('menolak skema berbahaya, path traversal, dan ekstensi aneh', () => {
+  it('menolak skema berbahaya, http eksternal tak terenkripsi, path traversal, dan ekstensi aneh', () => {
+    expect(isValidImageRef('http://insecure.example/foto.jpg')).toBe(false);
     expect(isValidImageRef('javascript:alert(1)')).toBe(false);
     expect(isValidImageRef('data:image/png;base64,AAA')).toBe(false);
     expect(isValidImageRef('/gambar/../.env')).toBe(false);

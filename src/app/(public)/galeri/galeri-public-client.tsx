@@ -86,7 +86,7 @@ export function GaleriPublicClient({
       {/* Filters Toolbar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-line shadow-xs">
         {/* Division Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 md:pb-0 max-w-full">
           {divisionTabs.map((tab) => {
             const active = selectedDivision === tab.code;
             return (
@@ -242,12 +242,12 @@ export function GaleriPublicClient({
             )}
 
             {/* Photo Display */}
-            <div className="max-h-[70vh] max-w-5xl w-full flex items-center justify-center">
+            <div className="max-h-[60dvh] sm:max-h-[70vh] max-w-5xl w-full flex items-center justify-center p-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={activeAlbum.image_urls[photoIndex]}
                 alt={`${activeAlbum.title} foto ${photoIndex + 1}`}
-                className="max-h-[70vh] max-w-full object-contain rounded-2xl shadow-2xl animate-in zoom-in-95 duration-150"
+                className="max-h-[60dvh] sm:max-h-[70vh] max-w-full object-contain rounded-2xl shadow-2xl animate-in zoom-in-95 duration-150"
               />
             </div>
 

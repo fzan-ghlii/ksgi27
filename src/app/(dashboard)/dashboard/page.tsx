@@ -13,7 +13,9 @@ import {
   Sparkles, 
   ArrowRight,
   Clock,
-  Layers
+  Layers,
+  ClipboardCheck,
+  Images
 } from 'lucide-react';
 import Link from 'next/link';
 import { adminDb } from '@/lib/firebase/admin';
@@ -170,6 +172,17 @@ export default async function DashboardOverviewPage() {
               <p className="text-xs text-ink-muted">Periksa NIM, nomor kontak WhatsApp, dan foto pengurus.</p>
             </Link>
 
+            <Link href="/dashboard/piket" className="p-4 rounded-2xl border border-line hover:border-cerulean bg-surface/50 hover:bg-white transition-all space-y-2 block group">
+              <div className="flex items-center justify-between">
+                <div className="h-9 w-9 rounded-xl bg-cerulean-light text-cerulean flex items-center justify-center">
+                  <ClipboardCheck className="h-5 w-5" />
+                </div>
+                <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-cerulean group-hover:translate-x-1 transition-all" />
+              </div>
+              <h4 className="font-bold text-sm text-ink">Jadwal &amp; Absen Piket Galeri</h4>
+              <p className="text-xs text-ink-muted">Cek jadwal piket Senin–Jumat dan konfirmasi kehadiran via kamera &amp; GPS.</p>
+            </Link>
+
             <Link href="/dashboard/artikel" className="p-4 rounded-2xl border border-line hover:border-cerulean bg-surface/50 hover:bg-white transition-all space-y-2 block group">
               <div className="flex items-center justify-between">
                 <div className="h-9 w-9 rounded-xl bg-cyan-light text-[#556343] flex items-center justify-center">
@@ -180,6 +193,19 @@ export default async function DashboardOverviewPage() {
               <h4 className="font-bold text-sm text-ink">Tulis / Moderasi Artikel</h4>
               <p className="text-xs text-ink-muted">Kelola draf riset emiten dan alur persetujuan publikasi.</p>
             </Link>
+
+            {(isPresidium || isCreator) && (
+              <Link href="/dashboard/carousel" className="p-4 rounded-2xl border border-gold/40 hover:border-gold bg-gold-light/20 hover:bg-white transition-all space-y-2 block group">
+                <div className="flex items-center justify-between">
+                  <div className="h-9 w-9 rounded-xl bg-gold-light text-[#66532d] flex items-center justify-center font-bold border border-gold/30">
+                    <Images className="h-5 w-5" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-gold group-hover:translate-x-1 transition-all" />
+                </div>
+                <h4 className="font-bold text-sm text-ink">Carousel Background Beranda</h4>
+                <p className="text-xs text-ink-muted">Atur foto latar 16:9 / landscape untuk hero halaman utama publik.</p>
+              </Link>
+            )}
 
             {isCreator && (
               <Link href="/dashboard/sistem" className="p-4 rounded-2xl border border-gold/40 hover:border-gold bg-gold-light/20 hover:bg-white transition-all space-y-2 block group">

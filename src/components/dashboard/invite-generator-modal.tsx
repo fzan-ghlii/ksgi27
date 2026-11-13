@@ -103,8 +103,8 @@ export function InviteGeneratorModal({ user, onInviteCreated }: ModalProps) {
       </Button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl border border-line shadow-2xl max-w-lg w-full p-6 sm:p-8 overflow-hidden relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-ink/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl border border-line shadow-2xl w-[calc(100%-1.5rem)] max-w-lg max-h-[90dvh] overflow-y-auto overscroll-contain p-5 sm:p-8 relative">
             {/* Modal Header */}
             <div className="flex items-start justify-between pb-4 border-b border-line mb-6">
               <div>

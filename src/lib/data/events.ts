@@ -7,6 +7,7 @@ import { isKadivUp, isPresidiumUp } from '@/lib/auth/permissions';
 import { EventInput, EventRegisterInput, EventUpdateInput } from '@/lib/schemas/event';
 import { slugify } from '@/lib/utils/content';
 import { badRequest, forbidden, notFound } from '@/lib/errors';
+import { sanitizeCsvCell } from '@/lib/security/guards';
 import { writeAudit } from '@/lib/data/audit';
 import {
   appendParticipantToSheet,
@@ -582,28 +583,22 @@ export async function exportRegistrationsCsv(eventId: string, actor: UserProfile
     'Catatan',
   ];
 
-  const escapeCsv = (val: string | number | boolean | undefined | null) => {
-    if (val === undefined || val === null) return '""';
-    const s = String(val).replace(/"/g, '""');
-    return `"${s}"`;
-  };
-
   const rows = snap.docs.map((doc, idx) => {
     const d = doc.data() as Registration;
     return [
       idx + 1,
-      escapeCsv(d.registered_at),
-      escapeCsv(d.participant_name || d.full_name),
-      escapeCsv(d.participant_nim || d.nim),
-      escapeCsv(d.participant_email || d.email),
-      escapeCsv(d.participant_phone || d.whatsapp),
-      escapeCsv(d.institution_faculty || d.institution),
-      escapeCsv(d.has_rdn ? 'Sudah Ada' : 'Belum Ada'),
-      escapeCsv(d.attendance_status || 'Registered'),
-      escapeCsv(d.notes || ''),
+      sanitizeCsvCell(d.registered_at),
+      sanitizeCsvCell(d.participant_name || d.full_name),
+      sanitizeCsvCell(d.participant_nim || d.nim),
+      sanitizeCsvCell(d.participant_email || d.email),
+      sanitizeCsvCell(d.participant_phone || d.whatsapp),
+      sanitizeCsvCell(d.institution_faculty || d.institution),
+      sanitizeCsvCell(d.has_rdn ? 'Sudah Ada' : 'Belum Ada'),
+      sanitizeCsvCell(d.attendance_status || 'Registered'),
+      sanitizeCsvCell(d.notes || ''),
     ].join(',');
   });
 
-  return [headers.join(','), ...rows].join('\n');
+  return '\uFEFF' + [headers.join(','), ...rows].join('\n');
 }
 

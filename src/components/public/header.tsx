@@ -22,15 +22,6 @@ const NAV_ITEMS = [
 export function Header() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = React.useState(false);
-  const [isScrolled, setIsScrolled] = React.useState(false);
-
-  React.useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 15);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   // Close mobile menu on route navigation
   React.useEffect(() => {
@@ -39,15 +30,9 @@ export function Header() {
 
   return (
     <header
-      className={cn(
-        'sticky top-0 z-40 w-full transition-all duration-300',
-        isScrolled
-          ? 'glass-header shadow-sm py-2 sm:py-2.5'
-          : 'bg-background/95 backdrop-blur-md border-b border-line py-3 sm:py-3.5'
-      )}
-      style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+      className="fixed top-0 inset-x-0 z-40 w-full shrink-0 glass-header border-b border-line shadow-xs pt-[env(safe-area-inset-top,0px)]"
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl flex items-center justify-between">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl h-16 flex items-center justify-between">
         {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-2.5 group">
           <GibeiLogo className="h-9 w-9 sm:h-10 sm:w-10 shadow-md shadow-cerulean/20 group-hover:scale-105 transition-transform" />
@@ -110,7 +95,7 @@ export function Header() {
       {/* Mobile Drawer Backdrop */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 top-[60px] bg-black/40 backdrop-blur-xs z-30 md:hidden animate-in fade-in duration-150"
+          className="fixed inset-0 top-16 bg-black/40 backdrop-blur-xs z-30 md:hidden animate-in fade-in duration-150"
           onClick={() => setMobileOpen(false)}
         />
       )}

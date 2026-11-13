@@ -33,12 +33,12 @@ export function PageHeader({
         <h1 className="text-2xl sm:text-3xl font-black text-ink tracking-tight">{title}</h1>
         <p className="text-xs sm:text-sm text-ink-muted mt-1 max-w-2xl">{description}</p>
       </div>
-      {actions && <div className="flex items-center gap-2.5 shrink-0">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 shrink-0">{actions}</div>}
     </div>
   );
 }
 
-/** Tab sederhana (tombol) dengan jumlah opsional. */
+/** Tab sederhana (tombol) dengan jumlah opsional, mendukung horizontal swipe di mobile. */
 export function TabBar<T extends string>({
   tabs,
   value,
@@ -49,7 +49,10 @@ export function TabBar<T extends string>({
   onChange: (id: T) => void;
 }) {
   return (
-    <div role="tablist" className="flex flex-wrap items-center gap-1.5 p-1.5 rounded-2xl bg-surface border border-line w-fit max-w-full">
+    <div
+      role="tablist"
+      className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-surface border border-line overflow-x-auto no-scrollbar flex-nowrap sm:flex-wrap w-full sm:w-fit max-w-full"
+    >
       {tabs.map((t) => {
         const active = t.id === value;
         return (
@@ -59,7 +62,7 @@ export function TabBar<T extends string>({
             aria-selected={active}
             onClick={() => onChange(t.id)}
             className={cn(
-              'px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer inline-flex items-center gap-2',
+              'px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer inline-flex items-center gap-2 shrink-0 sm:shrink',
               active ? 'bg-cerulean text-white shadow-sm' : 'text-ink-muted hover:text-cerulean-dark hover:bg-white/80'
             )}
           >

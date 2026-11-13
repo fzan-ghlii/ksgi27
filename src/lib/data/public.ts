@@ -2,7 +2,15 @@ import 'server-only';
 import { cache } from 'react';
 import { adminDb, FieldValue } from '@/lib/firebase/admin';
 import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
-import { BoardMember, Period, Division, EventAndSpm, Article, Gallery } from '@/types';
+import {
+  BoardMember,
+  Period,
+  Division,
+  EventAndSpm,
+  Article,
+  Gallery,
+  HeroCarouselConfig,
+} from '@/types';
 import { OFFICIAL_DIVISIONS } from '@/lib/constants/divisions';
 
 /**
@@ -328,5 +336,50 @@ export const getPublishedGalleries = cache(async (limit?: number): Promise<Galle
     return setInCache(cacheKey, result);
   } catch {
     return [];
+  }
+});
+
+// ------------------------------------------------------------------ Hero Carousel Beranda
+
+const HERO_CAROUSEL_CACHE_KEY = 'public_hero_carousel';
+
+export function invalidateHeroCarouselCache() {
+  memoryCache.delete(HERO_CAROUSEL_CACHE_KEY);
+}
+
+export const getPublicHeroCarousel = cache(async (): Promise<HeroCarouselConfig> => {
+  const cached = getFromCache<HeroCarouselConfig>(HERO_CAROUSEL_CACHE_KEY);
+  if (cached) return cached;
+
+  const fallback: HeroCarouselConfig = {
+    slides: [],
+    autoplay_seconds: 6,
+    blur_level: 'medium',
+    overlay_opacity: 76,
+    updated_at: '',
+    updated_by: '',
+  };
+
+  try {
+    const doc = await withSafetyTimeout(
+      adminDb.collection('site_settings').doc('hero_carousel').get()
+    );
+    if (!doc.exists) return setInCache(HERO_CAROUSEL_CACHE_KEY, fallback);
+    const data = doc.data() as Partial<HeroCarouselConfig>;
+    const activeSlides = Array.isArray(data.slides)
+      ? data.slides.filter((s) => s.is_active !== false && Boolean(s.image_url))
+      : [];
+    const result: HeroCarouselConfig = {
+      slides: activeSlides,
+      autoplay_seconds: typeof data.autoplay_seconds === 'number' ? data.autoplay_seconds : 6,
+      blur_level: data.blur_level ?? 'medium',
+      overlay_opacity: typeof data.overlay_opacity === 'number' ? data.overlay_opacity : 76,
+      updated_at: data.updated_at ?? '',
+      updated_by: data.updated_by ?? '',
+      updated_by_name: data.updated_by_name,
+    };
+    return setInCache(HERO_CAROUSEL_CACHE_KEY, result);
+  } catch {
+    return fallback;
   }
 });

@@ -199,7 +199,7 @@ export default function KontakPage() {
                 <div className="flex justify-end pt-2">
                   <Button
                     type="submit"
-                    className="bg-gold hover:bg-gold-hover text-ink font-bold text-xs px-6 py-2.5 rounded-xl shadow-sm gap-2"
+                    className="w-full sm:w-auto bg-gold hover:bg-gold-hover text-ink font-bold text-xs px-6 py-2.5 rounded-xl shadow-sm gap-2"
                   >
                     <Send className="h-4 w-4 text-ink" />
                     Kirim Pesan

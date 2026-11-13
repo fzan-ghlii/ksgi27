@@ -15,7 +15,9 @@ import {
   LogOut, 
   TrendingUp,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ClipboardCheck,
+  Images
 } from 'lucide-react';
 import { UserProfile } from '@/types';
 import { RoleBadge } from '@/components/ui/badge';
@@ -66,6 +68,12 @@ export function DashboardSidebar({ user }: SidebarProps) {
       show: isCreator || isPresidium || isKadiv,
     },
     {
+      title: 'Piket Galeri',
+      href: '/dashboard/piket',
+      icon: ClipboardCheck,
+      show: true,
+    },
+    {
       title: 'Event & SPM',
       href: '/dashboard/event-spm',
       icon: Calendar,
@@ -82,6 +90,13 @@ export function DashboardSidebar({ user }: SidebarProps) {
       href: '/dashboard/galeri',
       icon: ImageIcon,
       show: true,
+    },
+    {
+      title: 'Carousel Beranda',
+      href: '/dashboard/carousel',
+      icon: Images,
+      show: isCreator || isPresidium,
+      badge: 'Presidium',
     },
     {
       title: 'Pengaturan Sistem',

@@ -44,8 +44,8 @@ export default function TentangPage() {
             </div>
           </div>
 
-          <Link href="/sejarah" className="shrink-0">
-            <Button variant="cerulean" className="gap-2 font-bold shadow-sm">
+          <Link href="/sejarah" className="shrink-0 w-full sm:w-auto">
+            <Button variant="cerulean" className="w-full sm:w-auto gap-2 font-bold shadow-sm">
               <History className="h-4 w-4" />
               Buka Halaman Sejarah & Logo
               <ArrowRight className="h-4 w-4" />

@@ -17,4 +17,7 @@ export const forbidden = (message = 'Anda tidak memiliki wewenang untuk melakuka
   new AppError(message, 403);
 export const notFound = (message = 'Data tidak ditemukan.') => new AppError(message, 404);
 export const conflict = (message: string) => new AppError(message, 409);
+export const tooManyRequests = (
+  message = 'Terlalu banyak permintaan. Silakan coba lagi beberapa saat lagi.'
+) => new AppError(message, 429);
 

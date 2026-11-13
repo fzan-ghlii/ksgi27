@@ -211,9 +211,13 @@ export function GaleriClient({
                     <button
                       type="button"
                       onClick={() => setPreviewGallery(gal)}
-                      className="absolute inset-0 bg-transparent flex items-center justify-center opacity-0 group-hover:opacity-100 bg-ink/30 transition-opacity cursor-pointer text-white font-bold text-xs gap-1.5"
+                      className="absolute inset-0 bg-ink/20 sm:bg-transparent sm:hover:bg-ink/30 flex items-center justify-center opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-white font-bold text-xs gap-1.5"
+                      title={`Buka album ${gal.title}`}
                     >
-                      <Eye className="h-4 w-4" /> Lihat {gal.image_urls.length} Foto
+                      <span className="px-3 py-1.5 rounded-full bg-ink/75 sm:bg-transparent backdrop-blur-xs flex items-center gap-1.5 shadow-sm">
+                        <Eye className="h-3.5 w-3.5" />
+                        <span>Lihat {gal.image_urls.length} Foto</span>
+                      </span>
                     </button>
                   </div>
 
@@ -307,8 +311,8 @@ export function GaleriClient({
 
       {/* Lightbox / Preview Album Modal */}
       {previewGallery && (
-        <div className="fixed inset-0 z-50 bg-ink/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-in fade-in">
-          <div className="relative max-w-4xl w-full bg-white rounded-3xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto space-y-6">
+        <div className="fixed inset-0 z-50 bg-ink/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-in fade-in">
+          <div className="relative w-[calc(100%-1rem)] max-w-4xl bg-white rounded-3xl p-5 sm:p-8 max-h-[90vh] overflow-y-auto space-y-6">
             <div className="flex items-start justify-between gap-4 border-b border-line pb-4">
               <div>
                 <Badge variant="cerulean" className="text-xs mb-1">

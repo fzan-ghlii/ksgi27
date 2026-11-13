@@ -11,6 +11,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, CheckCircle, AlertCircle, ShieldCheck, ArrowRight, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { ImageUrlInput, IMAGE_HELP } from '@/components/shared/image-inputs';
 
 interface ActivationClientProps {
   invite: ActivationInvite;
@@ -333,15 +334,20 @@ export function ActivationClient({ invite, token }: ActivationClientProps) {
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="avatar">Tautan URL Foto Profil (Opsional)</Label>
-                  <Input
-                    id="avatar"
-                    type="url"
-                    placeholder="https://..."
+                <div className="space-y-1.5 sm:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="avatar">Foto Profil Pengurus (Opsional)</Label>
+                    <span className="text-[10px] text-ink-muted">JPG / PNG / WebP</span>
+                  </div>
+                  <ImageUrlInput
                     value={avatarUrl}
-                    onChange={(e) => setAvatarUrl(e.target.value)}
+                    onChange={setAvatarUrl}
+                    placeholder="/gambar/pengurus/foto.webp atau https://..."
+                    disabled={loading}
                   />
+                  <p className="text-[11px] text-ink-muted leading-relaxed">
+                    {IMAGE_HELP}
+                  </p>
                 </div>
               </div>
             </div>

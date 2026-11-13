@@ -20,6 +20,8 @@ import {
   ExternalLink,
   Shield,
   Sparkles,
+  ClipboardCheck,
+  Images,
 } from 'lucide-react';
 import { UserProfile } from '@/types';
 import { RoleBadge } from '@/components/ui/badge';
@@ -79,6 +81,12 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
       show: isCreator || isPresidium || isKadiv,
     },
     {
+      title: 'Piket Galeri',
+      href: '/dashboard/piket',
+      icon: ClipboardCheck,
+      show: true,
+    },
+    {
       title: 'Event & SPM',
       href: '/dashboard/event-spm',
       icon: Calendar,
@@ -95,6 +103,13 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
       href: '/dashboard/galeri',
       icon: ImageIcon,
       show: true,
+    },
+    {
+      title: 'Carousel Beranda',
+      href: '/dashboard/carousel',
+      icon: Images,
+      show: isCreator || isPresidium,
+      badge: 'Presidium',
     },
     {
       title: 'Pengaturan Sistem',
@@ -124,6 +139,7 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
   // Bottom navigation items for fast thumb access on mobile
   const bottomNavItems = [
     { label: 'Ringkasan', href: '/dashboard', icon: LayoutDashboard },
+    { label: 'Piket', href: '/dashboard/piket', icon: ClipboardCheck },
     { label: 'Event', href: '/dashboard/event-spm', icon: Calendar },
     { label: 'Artikel', href: '/dashboard/artikel', icon: FileText },
     { label: 'Galeri', href: '/dashboard/galeri', icon: ImageIcon },
@@ -469,3 +485,4 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
     </div>
   );
 }
+

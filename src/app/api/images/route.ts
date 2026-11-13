@@ -3,13 +3,26 @@ import { requireUser } from '@/lib/auth/session';
 import { errorResponse } from '@/lib/api/route';
 import { adminDb } from '@/lib/firebase/admin';
 import { badRequest } from '@/lib/errors';
+import { isValidWebpBuffer } from '@/lib/security/guards';
+import {
+  enforceRateLimit,
+  RATE_LIMIT_POLICIES,
+  rateLimitErrorResponse,
+} from '@/lib/security/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser('member');
+    const rl = await enforceRateLimit(RATE_LIMIT_POLICIES.imageUpload, `uid:${user.uid}`);
+    if (!rl.allowed) {
+      return rateLimitErrorResponse(
+        rl,
+        'Batas unggah gambar sementara tercapai. Silakan tunggu beberapa menit.'
+      );
+    }
 
     const body = await req.json().catch(() => null);
-    if (!body || !body.base64) {
+    if (!body || typeof body.base64 !== 'string' || !body.base64.trim()) {
       throw badRequest('Data gambar tidak valid atau kosong.');
     }
 
@@ -21,16 +34,22 @@ export async function POST(req: NextRequest) {
       throw badRequest('Ukuran gambar hasil kompresi masih melebihi batas penyimpanan database (950 KB).');
     }
 
+    const buffer = Buffer.from(base64, 'base64');
+    if (!isValidWebpBuffer(buffer) || buffer.length > 950 * 1024) {
+      throw badRequest('Format gambar harus file WebP yang valid.');
+    }
+
+    const cleanBase64 = buffer.toString('base64');
     const id = `img_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-    const cleanName = (name || 'image.webp').replace(/[^a-zA-Z0-9_.-]/g, '-');
+    const cleanName = (typeof name === 'string' && name ? name : 'image.webp').replace(/[^a-zA-Z0-9_.-]/g, '-');
 
     const imageData = {
       id,
       name: cleanName,
       mime_type: 'image/webp',
-      base64,
-      size: size || approximateBytes,
-      original_size: original_size || size || approximateBytes,
+      base64: cleanBase64,
+      size: typeof size === 'number' && size > 0 ? size : buffer.length,
+      original_size: typeof original_size === 'number' && original_size > 0 ? original_size : buffer.length,
       uploaded_by: user.uid,
       uploaded_by_name: user.full_name,
       created_at: new Date().toISOString(),

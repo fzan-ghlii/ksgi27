@@ -220,9 +220,101 @@ export function ParticipantClient({
         </div>
       </div>
 
-      {/* Tabel Peserta */}
+      {/* Tabel Peserta (Desktop) & Kartu Peserta (Mobile) */}
       <div className="bg-white rounded-2xl border border-border shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile View: Kartu Peserta Praktis */}
+        <div className="md:hidden divide-y divide-border/60">
+          {filtered.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground text-xs">
+              Tidak ada data peserta yang cocok.
+            </div>
+          ) : (
+            filtered.map((item, idx) => {
+              const currentStatus = item.attendance_status || 'Registered';
+              const isUpdating = updatingId === item.id;
+              const waNumber = (item.participant_phone || item.whatsapp || '').replace(/[^0-9]/g, '');
+              const waLink = waNumber ? `https://wa.me/${waNumber.startsWith('0') ? '62' + waNumber.slice(1) : waNumber}` : '#';
+
+              return (
+                <div key={item.id} className="p-4 space-y-3 bg-white">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-bold text-sm text-foreground">
+                        {idx + 1}. {item.participant_name || item.full_name}
+                      </div>
+                      <div className="text-xs font-mono text-muted-foreground">
+                        NIM: {item.participant_nim || item.nim} • {item.institution_faculty || item.institution || '-'}
+                      </div>
+                    </div>
+                    {item.has_rdn && (
+                      <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                        RDN ✓
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Kontak */}
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Mail className="w-3.5 h-3.5 text-primary shrink-0" />
+                      <span className="truncate max-w-[180px]">{item.participant_email || item.email}</span>
+                    </span>
+                    <a href={waLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-emerald-700 font-semibold">
+                      <Phone className="w-3.5 h-3.5 shrink-0" />
+                      {item.participant_phone || item.whatsapp}
+                    </a>
+                  </div>
+
+                  {/* Absensi Action Buttons */}
+                  <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                    <span className="text-[11px] font-semibold text-muted-foreground">Status:</span>
+                    <div className="inline-flex items-center gap-1 p-0.5 bg-secondary/60 rounded-xl border border-border">
+                      <button
+                        type="button"
+                        disabled={isUpdating}
+                        onClick={() => handleUpdateAttendance(item.id, 'Registered')}
+                        className={`px-2 py-1 rounded-lg text-xs font-semibold transition-all ${
+                          currentStatus === 'Registered'
+                            ? 'bg-white text-slate-800 shadow-xs'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Terdaftar
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isUpdating}
+                        onClick={() => handleUpdateAttendance(item.id, 'Attended')}
+                        className={`px-2 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
+                          currentStatus === 'Attended'
+                            ? 'bg-emerald-600 text-white shadow-xs'
+                            : 'text-emerald-700 hover:bg-emerald-50'
+                        }`}
+                      >
+                        Hadir ✓
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isUpdating}
+                        onClick={() => handleUpdateAttendance(item.id, 'Absent')}
+                        className={`px-2 py-1 rounded-lg text-xs font-semibold transition-all ${
+                          currentStatus === 'Absent'
+                            ? 'bg-rose-600 text-white shadow-xs'
+                            : 'text-rose-700 hover:bg-rose-50'
+                        }`}
+                      >
+                        Absen
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-secondary/40 border-b border-border text-muted-foreground font-semibold">
               <tr>
