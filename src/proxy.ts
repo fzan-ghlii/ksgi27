@@ -14,7 +14,7 @@ export function proxy(request: NextRequest) {
       referer: request.headers.get('referer'),
       host: request.headers.get('host'),
       forwardedHost: request.headers.get('x-forwarded-host'),
-      appUrl: process.env.NEXT_PUBLIC_APP_URL,
+      appUrl: process.env.APP_URL,
       fetchSite: request.headers.get('sec-fetch-site'),
     });
 

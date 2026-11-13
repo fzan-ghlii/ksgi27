@@ -3,7 +3,7 @@ import { getApps, getApp, initializeApp, cert, App } from 'firebase-admin/app';
 import { getAuth, Auth } from 'firebase-admin/auth';
 import { getFirestore, Firestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 
-const projectId = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+const projectId = process.env.FIREBASE_PROJECT_ID;
 
 let app: App;
 if (getApps().length > 0) {

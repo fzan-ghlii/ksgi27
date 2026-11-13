@@ -5,7 +5,7 @@ import {
 } from './turnstile';
 
 describe('getExpectedTurnstileHostnames', () => {
-  it('menghapus localhost/127.0.0.1 pada NODE_ENV=production dan memakai fallback NEXT_PUBLIC_APP_URL', () => {
+  it('menghapus localhost/127.0.0.1 pada NODE_ENV=production dan memakai fallback APP_URL', () => {
     const hosts = getExpectedTurnstileHostnames({
       NODE_ENV: 'production',
       TURNSTILE_HOSTNAMES: 'localhost, gibei-unimed.com, 127.0.0.1',
@@ -16,7 +16,7 @@ describe('getExpectedTurnstileHostnames', () => {
 
     const derived = getExpectedTurnstileHostnames({
       NODE_ENV: 'production',
-      NEXT_PUBLIC_APP_URL: 'https://portal.gibei-unimed.id/kegiatan',
+      APP_URL: 'https://portal.gibei-unimed.id/kegiatan',
     });
     expect(derived.has('portal.gibei-unimed.id')).toBe(true);
   });

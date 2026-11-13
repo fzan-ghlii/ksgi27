@@ -8,29 +8,38 @@ import {
   createUserWithEmailAndPassword,
 } from 'firebase/auth';
 
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
+function getClientAuth(): Auth {
+  const apiKey = process.env.FIREBASE_API_KEY;
+  if (!apiKey) {
+    throw new Error('Konfigurasi FIREBASE_API_KEY belum tersedia.');
+  }
 
-const firebaseApp: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-export const auth: Auth = getAuth(firebaseApp);
+  // Lazy init agar prerender SSR halaman /login tidak gagal saat env kosong
+  const firebaseApp: FirebaseApp =
+    getApps().length > 0
+      ? getApp()
+      : initializeApp({
+          apiKey,
+          authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+          messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+          appId: process.env.FIREBASE_APP_ID,
+        });
 
-const googleProvider = new GoogleAuthProvider();
-googleProvider.setCustomParameters({ prompt: 'select_account' });
+  return getAuth(firebaseApp);
+}
 
 export async function loginWithEmail(email: string, pass: string) {
-  return await signInWithEmailAndPassword(auth, email, pass);
+  return await signInWithEmailAndPassword(getClientAuth(), email, pass);
 }
 
 export async function registerWithEmail(email: string, pass: string) {
-  return await createUserWithEmailAndPassword(auth, email, pass);
+  return await createUserWithEmailAndPassword(getClientAuth(), email, pass);
 }
 
 export async function loginWithGoogle() {
-  return await signInWithPopup(auth, googleProvider);
+  const googleProvider = new GoogleAuthProvider();
+  googleProvider.setCustomParameters({ prompt: 'select_account' });
+  return await signInWithPopup(getClientAuth(), googleProvider);
 }

@@ -36,9 +36,9 @@ export function getExpectedTurnstileHostnames(
     hosts.add(h);
   }
 
-  if (hosts.size === 0 && env.NEXT_PUBLIC_APP_URL) {
+  if (hosts.size === 0 && env.APP_URL) {
     try {
-      const parsed = new URL(env.NEXT_PUBLIC_APP_URL);
+      const parsed = new URL(env.APP_URL);
       const hostname = parsed.hostname.toLowerCase();
       if (!isProd || (hostname !== 'localhost' && hostname !== '127.0.0.1')) {
         hosts.add(hostname);

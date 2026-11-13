@@ -19,15 +19,14 @@ Sesuai palet resmi terbaru:
 ### 1. Konfigurasi Lingkungan (`.env.local`)
 Pastikan file `.env.local` telah terisi kredensial Firebase Client dan Firebase Admin SDK:
 ```env
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+APP_URL=http://localhost:3000
 CREATOR_EMAILS=email.anda@gmail.com
 
-NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSy...
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=gibei-prod.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=gibei-prod
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=gibei-prod.firebasestorage.app
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
-NEXT_PUBLIC_FIREBASE_APP_ID=...
+FIREBASE_API_KEY=AIzaSy...
+FIREBASE_AUTH_DOMAIN=gibei-prod.firebaseapp.com
+FIREBASE_STORAGE_BUCKET=gibei-prod.firebasestorage.app
+FIREBASE_MESSAGING_SENDER_ID=...
+FIREBASE_APP_ID=...
 
 FIREBASE_PROJECT_ID=gibei-prod
 GCLOUD_PROJECT=gibei-prod

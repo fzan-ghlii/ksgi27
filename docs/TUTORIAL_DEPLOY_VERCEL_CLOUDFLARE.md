@@ -56,12 +56,12 @@ Disarankan memakai proyek Firebase khusus **Production** (terpisah dari developm
 ### 2.1. Siapkan Web App & Service Account
 1. Buka [Firebase Console](https://console.firebase.google.com/) > pilih proyek produksi.
 2. **Client SDK Keys**: Masuk **Project Settings > General > Your apps > Web app (`</>`)**, catat:
-   - `NEXT_PUBLIC_FIREBASE_API_KEY`
-   - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
-   - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
-   - `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
-   - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
-   - `NEXT_PUBLIC_FIREBASE_APP_ID`
+   - `FIREBASE_API_KEY`
+   - `FIREBASE_AUTH_DOMAIN`
+   - `FIREBASE_PROJECT_ID` *(dipakai bersama oleh Client SDK & Admin SDK)*
+   - `FIREBASE_STORAGE_BUCKET`
+   - `FIREBASE_MESSAGING_SENDER_ID`
+   - `FIREBASE_APP_ID`
 3. **Admin SDK Service Account**: Masuk **Project Settings > Service accounts > Generate new private key**, unduh file JSON, lalu ambil:
    - `FIREBASE_PROJECT_ID` (dan `GCLOUD_PROJECT` samakan dengan ID proyek)
    - `FIREBASE_CLIENT_EMAIL`
@@ -93,7 +93,7 @@ firebase deploy --only firestore:rules,firestore:indexes
 > 1. `board_members`: `period_id` (ASC), `division_id` (ASC), `order_index` (ASC)
 > 2. `activation_invites`: `status` (ASC), `created_at` (DESC)
 
-*(Opsional)* Aktifkan **Firebase App Check** (reCAPTCHA Enterprise) pada Web App di Firebase Console bila proyek sudah pada paket Blaze/kuota memadai untuk mencegah penyalahgunaan `NEXT_PUBLIC_FIREBASE_API_KEY` dari skrip luar.
+*(Opsional)* Aktifkan **Firebase App Check** (reCAPTCHA Enterprise) pada Web App di Firebase Console bila proyek sudah pada paket Blaze/kuota memadai untuk mencegah penyalahgunaan `FIREBASE_API_KEY` dari skrip luar.
 
 ---
 
@@ -153,7 +153,7 @@ Cloudflare berdiri di depan Vercel untuk menangani ancaman jaringan (**SYN Flood
 3. Pada **Domains / Hostnames**, tambahkan domain produksi Anda (misal `gibei-unimed.com` dan `www.gibei-unimed.com`).
 4. Pilih **Widget Mode**: **Managed** (rekomendasi, otomatis non-interaktif bagi manusia dan menantang bot).
 5. Klik **Create**, lalu salin:
-   - **`NEXT_PUBLIC_TURNSTILE_SITE_KEY`**
+   - **`TURNSTILE_SITE_KEY`**
    - **`TURNSTILE_SECRET_KEY`**
 6. Siapkan juga env:
    - **`TURNSTILE_HOSTNAMES`**=`gibei-unimed.com,www.gibei-unimed.com` *(domain dipisah koma tanpa `https://`)*
@@ -230,21 +230,20 @@ Pilih scope **Production** untuk semua variabel berikut:
 
 | Variabel | Wajib? | Contoh / Cara Pengisian |
 | :--- | :---: | :--- |
-| `NEXT_PUBLIC_APP_URL` | **Wajib** | `https://gibei-unimed.com` *(tanpa garis miring `/` di belakang; harus persis domain utama HTTPS agar Proxy CSRF Check lolos)* |
+| `APP_URL` | **Wajib** | `https://gibei-unimed.com` *(tanpa garis miring `/` di belakang; harus persis domain utama HTTPS agar Proxy CSRF Check lolos)* |
 | `CREATOR_EMAILS` | **Wajib** | `ketua.gibei@gmail.com,pembina@unimed.ac.id` *(email Google yang otomatis jadi role `creator` saat login pertama kali)* |
-| `NEXT_PUBLIC_FIREBASE_API_KEY` | **Wajib** | `AIzaSy...` *(dari Firebase Web App)* |
-| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | **Wajib** | `gibei-prod.firebaseapp.com` |
-| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | **Wajib** | `gibei-prod` |
-| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | **Wajib** | `gibei-prod.firebasestorage.app` |
-| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | **Wajib** | `123456789012` |
-| `NEXT_PUBLIC_FIREBASE_APP_ID` | **Wajib** | `1:123456789012:web:...` |
-| `FIREBASE_PROJECT_ID` | **Wajib** | `gibei-prod` |
+| `FIREBASE_API_KEY` | **Wajib** | `AIzaSy...` *(dari Firebase Web App)* |
+| `FIREBASE_AUTH_DOMAIN` | **Wajib** | `gibei-prod.firebaseapp.com` |
+| `FIREBASE_STORAGE_BUCKET` | **Wajib** | `gibei-prod.firebasestorage.app` |
+| `FIREBASE_MESSAGING_SENDER_ID` | **Wajib** | `123456789012` |
+| `FIREBASE_APP_ID` | **Wajib** | `1:123456789012:web:...` |
+| `FIREBASE_PROJECT_ID` | **Wajib** | `gibei-prod` *(dipakai bersama oleh Client SDK & Admin SDK)* |
 | `GCLOUD_PROJECT` | **Wajib** | `gibei-prod` |
 | `FIREBASE_CLIENT_EMAIL` | **Wajib** | `firebase-adminsdk-xxxx@gibei-prod.iam.gserviceaccount.com` |
 | `FIREBASE_PRIVATE_KEY` | **Wajib** | Tempel kunci privat Service Account. Di Vercel, Anda bisa menempel dengan `\n` literal (sudah ditangani `.replace(/\\n/g, '\n')` di `admin.ts`) maupun multi-line |
 | `UPSTASH_REDIS_REST_URL` | **Sangat Disarankan** | `https://xxxx.upstash.io` *(dari Upstash Console)* |
 | `UPSTASH_REDIS_REST_TOKEN` | **Sangat Disarankan** | Token REST Upstash |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | **Sangat Disarankan** | Site Key Turnstile Cloudflare |
+| `TURNSTILE_SITE_KEY` | **Sangat Disarankan** | Site Key Turnstile Cloudflare |
 | `TURNSTILE_SECRET_KEY` | **Sangat Disarankan** | Secret Key Turnstile Cloudflare |
 | `TURNSTILE_HOSTNAMES` | **Sangat Disarankan** | `gibei-unimed.com,www.gibei-unimed.com` |
 | `TURNSTILE_REQUIRED` | Disarankan | `true` *(aktifkan setelah Site Key & Secret Key sudah terpasang valid)* |
@@ -253,7 +252,7 @@ Pilih scope **Production** untuk semua variabel berikut:
 | `GFORM_WEBHOOK_SECRET` | Opsional | Secret panjang acak untuk endpoint `/api/webhooks/gform` |
 
 > [!CAUTION]
-> Setelah menambahkan variabel berawalan `NEXT_PUBLIC_*` atau mengubahnya, **wajib lakukan Redeploy** di Vercel (tab **Deployments > `...` > Redeploy**), karena variabel `NEXT_PUBLIC_*` dibundel pada saat *build time*.
+> Variabel klien publik (`FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID`, `FIREBASE_STORAGE_BUCKET`, `FIREBASE_MESSAGING_SENDER_ID`, `FIREBASE_APP_ID`, dan `TURNSTILE_SITE_KEY`) diteruskan ke bundle browser lewat blok `env` di [`next.config.ts`](file:///d:/DOKUMEN%20UMUM/gibei-27/next.config.ts) agar bebas dari awalan nama framework. Setelah menambah atau mengubahnya di Vercel, **wajib lakukan Redeploy** (tab **Deployments > `...` > Redeploy**) karena nilainya dibundel saat *build time*.
 
 ---
 
