@@ -67,6 +67,11 @@ export const BoardAddSchema = z.object({
 export type BoardAddInput = z.infer<typeof BoardAddSchema>;
 
 export const BoardUpdateSchema = z.object({
+  period_id: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z0-9_-]{1,128}$/, 'Format ID periode tidak valid.')
+    .optional(),
   full_name: z.string().trim().min(3, 'Nama minimal 3 karakter.').max(100).optional(),
   position_title: z.string().trim().min(2, 'Jabatan minimal 2 karakter.').max(80).optional(),
   order_index: z.number().int().min(0).max(999).optional(),

@@ -6,6 +6,7 @@ import { ActivationInvite, UserProfile, BoardMember, InviteStatus } from '@/type
 import { CreateInviteInput, CompleteActivationInput } from '@/lib/schemas/activation';
 import { canIssueInvite } from '@/lib/auth/roles';
 import { seedInitialPeriodAndDivisions } from '@/lib/auth/bootstrap';
+import { getPeriodById } from '@/lib/data/periods';
 import { AppError, badRequest, conflict, forbidden, notFound } from '@/lib/errors';
 import { buildAudit, writeAudit } from '@/lib/data/audit';
 import { invalidatePublicCache, revalidatePublicPaths } from '@/lib/data/public';
@@ -20,8 +21,23 @@ export async function createActivationInvite(
     throw forbidden('Anda tidak memiliki wewenang untuk membuat tautan aktivasi dengan role ini.');
   }
 
-  // 2. Ensure initial period & divisions exist
-  const periodId = await seedInitialPeriodAndDivisions();
+  // 2. Resolve target period (selected by admin or fallback to active/seeded period)
+  let periodId: string;
+  let periodLabel: string;
+  if (input.period_id) {
+    if (!isSafeDocId(input.period_id)) {
+      throw badRequest('ID periode tidak valid.');
+    }
+    const period = await getPeriodById(input.period_id);
+    if (!period) {
+      throw notFound(`Periode ${input.period_id} tidak ditemukan.`);
+    }
+    periodId = period.id;
+    periodLabel = period.year_range;
+  } else {
+    periodId = await seedInitialPeriodAndDivisions();
+    periodLabel = periodId;
+  }
 
   // Find target division document
   const divQuery = await adminDb
@@ -64,7 +80,7 @@ export async function createActivationInvite(
     action: 'INVITE_GENERATED',
     target_collection: 'activation_invites',
     target_id: token,
-    summary: `Membuat link aktivasi untuk jabatan "${input.assigned_position}" (${input.division_code}) role: ${input.target_role}`,
+    summary: `Membuat link aktivasi untuk jabatan "${input.assigned_position}" (${input.division_code}, periode ${periodLabel}) role: ${input.target_role}`,
   });
 
   return inviteData;

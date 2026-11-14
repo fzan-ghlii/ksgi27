@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowDown, ArrowUp, Calendar, CheckCircle2, Crown, Eye, EyeOff, Pencil, Plus, Trash2, Users } from 'lucide-react';
+import { ArrowDown, ArrowRightLeft, ArrowUp, Calendar, CheckCircle2, Crown, Eye, EyeOff, Pencil, Plus, Trash2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import type { BoardMember, Division, DivisionCode, Period, UserProfile } from '@/types';
 import { Badge } from '@/components/ui/badge';
@@ -43,7 +43,11 @@ export function KepengurusanClient({ user, periods, selectedPeriodId, divisions,
   const [tab, setTab] = React.useState<'pengurus' | 'periode'>('pengurus');
   const [divisionFilter, setDivisionFilter] = React.useState<'ALL' | DivisionCode>('ALL');
   const [periodModal, setPeriodModal] = React.useState<{ open: boolean; period: Period | null }>({ open: false, period: null });
-  const [boardModal, setBoardModal] = React.useState<{ open: boolean; member: BoardMember | null }>({ open: false, member: null });
+  const [boardModal, setBoardModal] = React.useState<{
+    open: boolean;
+    member: BoardMember | null;
+    mode?: 'edit' | 'move';
+  }>({ open: false, member: null });
   const [confirm, setConfirm] = React.useState<ConfirmState>(null);
   const [movingId, setMovingId] = React.useState<string | null>(null);
 
@@ -323,11 +327,22 @@ export function KepengurusanClient({ user, periods, selectedPeriodId, divisions,
                             <Button size="icon" variant="ghost" aria-label="Turunkan urutan" disabled={!editable || idx === siblings.length - 1 || movingId === m.id} onClick={() => move(m, 'down')}>
                               <ArrowDown className="h-4 w-4" />
                             </Button>
-                            <Button size="icon" variant="ghost" aria-label="Edit pengurus" disabled={!editable} onClick={() => setBoardModal({ open: true, member: m })}>
+                            <Button size="icon" variant="ghost" aria-label="Edit pengurus" title="Edit pengurus" disabled={!editable} onClick={() => setBoardModal({ open: true, member: m, mode: 'edit' })}>
                               <Pencil className="h-4 w-4" />
                             </Button>
                             {canStructure && (
                               <>
+                                {periods.length > 1 && (
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    aria-label="Pindah ke periode lain"
+                                    title="Pindah ke periode lain"
+                                    onClick={() => setBoardModal({ open: true, member: m, mode: 'move' })}
+                                  >
+                                    <ArrowRightLeft className="h-4 w-4" />
+                                  </Button>
+                                )}
                                 {division && m.user_id && m.division_code !== 'PRESIDIUM' && !isHead && !inactive && (
                                   <Button size="icon" variant="ghost" aria-label="Jadikan Kepala Divisi" title="Jadikan Kepala Divisi" className="text-[#66532d] hover:bg-gold-light" onClick={() => setConfirm({ kind: 'make-head', member: m, division })}>
                                     <Crown className="h-4 w-4" />
@@ -358,9 +373,11 @@ export function KepengurusanClient({ user, periods, selectedPeriodId, divisions,
         open={boardModal.open}
         onOpenChange={(o) => setBoardModal((s) => ({ ...s, open: o }))}
         user={user}
+        periods={periods}
         periodId={selectedPeriodId}
         defaultDivision={divisionFilter === 'ALL' ? 'KEGIATAN' : divisionFilter}
         member={boardModal.member}
+        mode={boardModal.mode}
       />
       <ConfirmDialog
         open={!!confirm}

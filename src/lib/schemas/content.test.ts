@@ -5,6 +5,7 @@ import {
   ArticleReviewSchema,
   GalleryInputSchema,
   BoardAddSchema,
+  BoardUpdateSchema,
 } from './content';
 
 const validPeriod = {
@@ -72,6 +73,11 @@ describe('GalleryInputSchema & BoardAddSchema', () => {
     const base = { period_id: '2026-2027', division_code: 'MEDIA' as const, full_name: 'Budi Santoso', position_title: 'Staf' };
     expect(BoardAddSchema.safeParse({ ...base, social_links: { instagram: 'javascript:1' } }).success).toBe(false);
     expect(BoardAddSchema.safeParse({ ...base, social_links: { instagram: 'https://instagram.com/budi' } }).success).toBe(true);
+  });
+  it('BoardUpdateSchema menerima period_id valid dan menolak karakter berbahaya', () => {
+    expect(BoardUpdateSchema.safeParse({ period_id: '2025-2026' }).success).toBe(true);
+    expect(BoardUpdateSchema.safeParse({ period_id: '../2025' }).success).toBe(false);
+    expect(BoardUpdateSchema.safeParse({ period_id: '' }).success).toBe(false);
   });
 });
 

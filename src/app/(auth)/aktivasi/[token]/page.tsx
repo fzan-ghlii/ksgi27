@@ -1,4 +1,5 @@
 import { getInviteByToken } from '@/lib/data/invites';
+import { getPeriodById } from '@/lib/data/periods';
 import { ActivationClient } from './activation-client';
 import { Card, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,6 +46,11 @@ export default async function ActivationPage({
     );
   }
 
-  return <ActivationClient invite={invite} token={token} />;
+  const period = await getPeriodById(invite.period_id);
+  const periodLabel = period
+    ? `Periode ${period.year_range}${period.cabinet_name ? ` (${period.cabinet_name})` : ''}`
+    : `Periode ${invite.period_id}`;
+
+  return <ActivationClient invite={invite} periodLabel={periodLabel} token={token} />;
 }
 

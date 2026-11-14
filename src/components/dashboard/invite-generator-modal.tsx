@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { UserProfile, DivisionCode } from '@/types';
+import { UserProfile, DivisionCode, Period } from '@/types';
 import { OFFICIAL_DIVISIONS } from '@/lib/constants/divisions';
 import { getAllowedInviteRoles } from '@/lib/auth/roles';
 import { Button } from '@/components/ui/button';
@@ -13,19 +13,22 @@ import { apiFetch } from '@/lib/api-client';
 
 interface ModalProps {
   user: UserProfile;
+  periods: Period[];
   onInviteCreated?: () => void;
 }
 
-export function InviteGeneratorModal({ user, onInviteCreated }: ModalProps) {
+export function InviteGeneratorModal({ user, periods, onInviteCreated }: ModalProps) {
   const [open, setOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const allowedRoles = getAllowedInviteRoles(user.role, user.division_code);
+  const defaultPeriodId = periods.find((p) => p.is_current)?.id ?? periods[0]?.id ?? '';
 
   const [targetRole, setTargetRole] = React.useState<'member' | 'admin_kadiv' | 'master_presidium'>(
     allowedRoles[0] || 'member'
   );
+  const [periodId, setPeriodId] = React.useState<string>(defaultPeriodId);
   const [divisionCode, setDivisionCode] = React.useState<DivisionCode>(
     user.division_code || 'EDUKASI'
   );
@@ -53,6 +56,7 @@ export function InviteGeneratorModal({ user, onInviteCreated }: ModalProps) {
         body: {
           target_role: targetRole,
           division_code: divisionCode,
+          ...(periodId ? { period_id: periodId } : {}),
           assigned_position: assignedPosition,
           recipient_name_hint: recipientHint,
           expires_in_days: expiresInDays,
@@ -171,6 +175,30 @@ export function InviteGeneratorModal({ user, onInviteCreated }: ModalProps) {
             ) : (
               /* Form View */
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Periode Kepengurusan */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="invite-period">Periode Kepengurusan</Label>
+                  <select
+                    id="invite-period"
+                    value={periodId}
+                    onChange={(e) => setPeriodId(e.target.value)}
+                    disabled={periods.length === 0}
+                    className="w-full h-10 rounded-lg border border-line bg-white px-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-cerulean font-medium disabled:opacity-60"
+                  >
+                    {periods.length > 0 ? (
+                      periods.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.year_range}
+                          {p.cabinet_name ? ` — ${p.cabinet_name}` : ''}
+                          {p.is_current ? ' (Aktif)' : ''}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="">Periode Aktif Otomatis</option>
+                    )}
+                  </select>
+                </div>
+
                 {/* Target Role */}
                 <div className="space-y-1.5">
                   <Label>Tingkat Role</Label>

@@ -1,11 +1,11 @@
 {
     "schema_version": 2,
-    "commit": "c439eca4c972c750160ea66311f4a571cce8cf9b",
-    "indexed_at": "2026-11-13T21:30:23Z",
+    "commit": "7cb7019b41668fe3cf577bf753a62b977742cf2d",
+    "indexed_at": "2026-11-13T22:57:29Z",
     "project": "D-DOKUMEN-UMUM-gibei-27",
-    "nodes": 1565,
-    "edges": 5895,
+    "nodes": 1588,
+    "edges": 6011,
     "original_size": 8912896,
-    "compressed_size": 1737626,
+    "compressed_size": 1757543,
     "compression_level": 3
 }

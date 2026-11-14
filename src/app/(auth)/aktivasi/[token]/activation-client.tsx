@@ -14,10 +14,11 @@ import { ImageUrlInput, IMAGE_HELP } from '@/components/shared/image-inputs';
 
 interface ActivationClientProps {
   invite: ActivationInvite;
+  periodLabel?: string;
   token: string;
 }
 
-export function ActivationClient({ invite, token }: ActivationClientProps) {
+export function ActivationClient({ invite, periodLabel, token }: ActivationClientProps) {
   const router = useRouter();
 
   // Auth Step
@@ -124,7 +125,7 @@ export function ActivationClient({ invite, token }: ActivationClientProps) {
               {invite.assigned_position}
             </h2>
             <p className="text-xs text-cerulean-dark font-semibold">
-              {invite.division_code} • Periode Kabinet Aktif
+              {invite.division_code} • {periodLabel ?? `Periode ${invite.period_id}`}
             </p>
           </div>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ActivationInvite } from '@/types';
+import { ActivationInvite, Period } from '@/types';
 import { InviteStatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/modal';
@@ -12,10 +12,15 @@ import { toast } from 'sonner';
 
 interface TableProps {
   invites: ActivationInvite[];
+  periods: Period[];
   onRefresh: () => void;
 }
 
-export function InviteTable({ invites, onRefresh }: TableProps) {
+export function InviteTable({ invites, periods, onRefresh }: TableProps) {
+  const periodMap = React.useMemo(
+    () => new Map(periods.map((p) => [p.id, p.year_range])),
+    [periods]
+  );
   const [copiedToken, setCopiedToken] = React.useState<string | null>(null);
   const [revokingToken, setRevokingToken] = React.useState<string | null>(null);
   const [revokeTarget, setRevokeTarget] = React.useState<{ token: string; position: string } | null>(null);
@@ -62,10 +67,12 @@ export function InviteTable({ invites, onRefresh }: TableProps) {
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <h3 className="font-bold text-sm text-ink">{inv.assigned_position}</h3>
-                  <div className="text-xs text-cerulean-dark font-medium flex items-center gap-1.5 mt-0.5">
+                  <div className="text-xs text-cerulean-dark font-medium flex flex-wrap items-center gap-1.5 mt-0.5">
                     <span className="font-semibold">{inv.division_code}</span>
                     <span>•</span>
                     <span className="capitalize">{inv.target_role.replace('_', ' ')}</span>
+                    <span>•</span>
+                    <span>Periode {periodMap.get(inv.period_id) ?? inv.period_id}</span>
                   </div>
                 </div>
                 <InviteStatusBadge status={inv.status} />
@@ -157,10 +164,12 @@ export function InviteTable({ invites, onRefresh }: TableProps) {
                 <tr key={inv.token} className="hover:bg-surface/50 transition-colors">
                   <td className="px-5 py-4">
                     <div className="font-bold text-ink">{inv.assigned_position}</div>
-                    <div className="text-xs text-cerulean-dark font-medium flex items-center gap-1.5 mt-0.5">
+                    <div className="text-xs text-cerulean-dark font-medium flex flex-wrap items-center gap-1.5 mt-0.5">
                       <span>{inv.division_code}</span>
                       <span>•</span>
                       <span className="capitalize">{inv.target_role.replace('_', ' ')}</span>
+                      <span>•</span>
+                      <span>Periode {periodMap.get(inv.period_id) ?? inv.period_id}</span>
                     </div>
                   </td>
                   <td className="px-5 py-4 text-xs text-ink-muted">

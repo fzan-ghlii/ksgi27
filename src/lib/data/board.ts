@@ -1,4 +1,5 @@
 import 'server-only';
+import type { DocumentSnapshot } from 'firebase-admin/firestore';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
 import type { BoardMember, Division, UserProfile } from '@/types';
 import { OFFICIAL_DIVISIONS, divisionDocId } from '@/lib/constants/divisions';
@@ -7,6 +8,7 @@ import { BoardAddInput, BoardUpdateInput } from '@/lib/schemas/content';
 import { badRequest, forbidden, notFound } from '@/lib/errors';
 import { buildAudit } from '@/lib/data/audit';
 import { invalidatePublicCache, revalidatePublicPaths } from '@/lib/data/public';
+import { isSafeDocId } from '@/lib/security/guards';
 
 function invalidateBoardCaches(withDivisions = false) {
   invalidatePublicCache('board');
@@ -31,14 +33,18 @@ export async function listBoardMembers(periodId: string): Promise<BoardMember[]>
   return sortMembers(snap.docs.map((d) => d.data() as BoardMember));
 }
 
+function computeNextOrderIndex(docs: Array<{ data: () => unknown }>): number {
+  if (docs.length === 0) return 0;
+  return Math.max(...docs.map((d) => (d.data() as BoardMember).order_index ?? 0)) + 1;
+}
+
 async function nextOrderIndex(periodId: string, divisionCode: string): Promise<number> {
   const snap = await adminDb
     .collection('board_members')
     .where('period_id', '==', periodId)
     .where('division_code', '==', divisionCode)
     .get();
-  if (snap.empty) return 0;
-  return Math.max(...snap.docs.map((d) => (d.data() as BoardMember).order_index ?? 0)) + 1;
+  return computeNextOrderIndex(snap.docs);
 }
 
 export async function addBoardMember(actor: UserProfile, input: BoardAddInput): Promise<BoardMember> {
@@ -89,60 +95,144 @@ export async function updateBoardMember(
   id: string,
   input: BoardUpdateInput
 ): Promise<void> {
+  if (!isSafeDocId(id)) throw badRequest('ID pengurus tidak valid.');
+  if (input.period_id !== undefined && !isSafeDocId(input.period_id)) {
+    throw badRequest('ID periode tidak valid.');
+  }
+
   const ref = adminDb.collection('board_members').doc(id);
-  const snap = await ref.get();
-  if (!snap.exists) throw notFound('Data pengurus tidak ditemukan.');
-  const member = snap.data() as BoardMember;
+  let isPeriodMove = false;
 
-  if (!canEditBoardMember(actor, member.division_code)) {
-    throw forbidden('Anda hanya dapat mengubah pengurus di divisi Anda.');
-  }
-  // Nama & status aktif adalah wewenang struktur (Presidium/Creator).
-  if ((input.full_name !== undefined || input.is_active !== undefined) && !canManageBoardStructure(actor)) {
-    throw forbidden('Mengubah nama atau status aktif pengurus hanya untuk Presidium dan Creator.');
-  }
+  await adminDb.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw notFound('Data pengurus tidak ditemukan.');
+    const member = snap.data() as BoardMember;
 
-  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
-  if (input.full_name !== undefined) patch.full_name = input.full_name;
-  if (input.position_title !== undefined) patch.position_title = input.position_title;
-  if (input.order_index !== undefined) patch.order_index = input.order_index;
-  if (input.photo_url !== undefined) patch.photo_url = input.photo_url;
-  if (input.bio !== undefined) patch.bio = input.bio;
-  if (input.is_active !== undefined) patch.is_active = input.is_active;
-  if (input.social_links !== undefined) {
-    patch.social_links = {
-      linkedin: input.social_links.linkedin ?? '',
-      instagram: input.social_links.instagram ?? '',
-    };
-  }
+    if (!canEditBoardMember(actor, member.division_code)) {
+      throw forbidden('Anda hanya dapat mengubah pengurus di divisi Anda.');
+    }
 
-  const batch = adminDb.batch();
-  batch.update(ref, patch);
+    isPeriodMove = input.period_id !== undefined && input.period_id !== member.period_id;
 
-  // Sinkronkan profil akun bila pengurus ini punya akun.
-  if (member.user_id && (input.full_name !== undefined || input.position_title !== undefined || input.photo_url !== undefined)) {
-    const userRef = adminDb.collection('users').doc(member.user_id);
-    if ((await userRef.get()).exists) {
+    // Nama, status aktif, dan perpindahan periode adalah wewenang struktur (Presidium/Creator).
+    if (
+      (input.full_name !== undefined || input.is_active !== undefined || isPeriodMove) &&
+      !canManageBoardStructure(actor)
+    ) {
+      throw forbidden('Mengubah nama, status aktif, atau periode pengurus hanya untuk Presidium dan Creator.');
+    }
+
+    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (input.full_name !== undefined) patch.full_name = input.full_name;
+    if (input.position_title !== undefined) patch.position_title = input.position_title;
+    if (input.order_index !== undefined) patch.order_index = input.order_index;
+    if (input.photo_url !== undefined) patch.photo_url = input.photo_url;
+    if (input.bio !== undefined) patch.bio = input.bio;
+    if (input.is_active !== undefined) patch.is_active = input.is_active;
+    if (input.social_links !== undefined) {
+      patch.social_links = {
+        linkedin: input.social_links.linkedin ?? '',
+        instagram: input.social_links.instagram ?? '',
+      };
+    }
+
+    // Semua bacaan transaksi dilakukan sebelum penulisan agar tetap atomik.
+    let targetPeriodId = member.period_id;
+    let targetDivisionId = member.division_id;
+    const oldDivRef = adminDb.collection('divisions').doc(member.division_id);
+    let oldDivSnap: DocumentSnapshot | null = null;
+
+    if (isPeriodMove && input.period_id) {
+      targetPeriodId = input.period_id;
+      const targetPeriodRef = adminDb.collection('periods').doc(targetPeriodId);
+      const targetDivQuery = adminDb
+        .collection('divisions')
+        .where('period_id', '==', targetPeriodId)
+        .where('code', '==', member.division_code)
+        .limit(1);
+
+      const [periodSnap, targetDivQuerySnap, fetchedOldDivSnap, siblingsSnap] = await Promise.all([
+        tx.get(targetPeriodRef),
+        tx.get(targetDivQuery),
+        tx.get(oldDivRef),
+        input.order_index === undefined
+          ? tx.get(
+              adminDb
+                .collection('board_members')
+                .where('period_id', '==', targetPeriodId)
+                .where('division_code', '==', member.division_code)
+            )
+          : Promise.resolve(null),
+      ]);
+      oldDivSnap = fetchedOldDivSnap;
+
+      if (!periodSnap.exists) {
+        throw notFound('Periode tujuan tidak ditemukan.');
+      }
+      if (targetDivQuerySnap.empty) {
+        throw notFound(`Divisi ${member.division_code} tidak ditemukan pada periode tujuan.`);
+      }
+
+      targetDivisionId = targetDivQuerySnap.docs[0].id;
+      patch.period_id = targetPeriodId;
+      patch.division_id = targetDivisionId;
+      if (siblingsSnap) {
+        patch.order_index = computeNextOrderIndex(siblingsSnap.docs);
+      }
+    }
+
+    const needUserSync =
+      Boolean(member.user_id) &&
+      (isPeriodMove ||
+        input.full_name !== undefined ||
+        input.position_title !== undefined ||
+        input.photo_url !== undefined);
+    const userRef = member.user_id ? adminDb.collection('users').doc(member.user_id) : null;
+    const userSnap = needUserSync && userRef ? await tx.get(userRef) : null;
+
+    tx.update(ref, patch);
+
+    if (
+      isPeriodMove &&
+      oldDivSnap?.exists &&
+      member.user_id &&
+      (oldDivSnap.data() as Division).head_user_id === member.user_id
+    ) {
+      tx.update(oldDivRef, { head_user_id: null });
+    }
+
+    // Sinkronkan profil akun bila pengurus ini punya akun.
+    if (userRef && userSnap?.exists) {
+      const userData = userSnap.data() as UserProfile;
       const userPatch: Record<string, unknown> = {};
       if (input.full_name !== undefined) userPatch.full_name = input.full_name;
       if (input.position_title !== undefined) userPatch.position_title = input.position_title;
       if (input.photo_url !== undefined) userPatch.avatar_url = input.photo_url;
-      batch.update(userRef, userPatch);
+      if (isPeriodMove && (!userData.period_id || userData.period_id === member.period_id)) {
+        userPatch.period_id = targetPeriodId;
+        userPatch.division_id = targetDivisionId;
+      }
+      if (Object.keys(userPatch).length > 0) {
+        tx.update(userRef, userPatch);
+      }
     }
-  }
 
-  const audit = buildAudit(actor, {
-    action: 'UPDATE',
-    target_collection: 'board_members',
-    target_id: id,
-    summary:
-      input.is_active !== undefined && Object.keys(patch).length === 2
-        ? `${input.is_active ? 'Mengaktifkan' : 'Menonaktifkan'} pengurus "${member.full_name}"`
-        : `Memperbarui data pengurus "${input.full_name ?? member.full_name}" (${member.division_code})`,
+    const summary = isPeriodMove
+      ? `Memindahkan pengurus "${input.full_name ?? member.full_name}" (${member.division_code}) dari periode ${member.period_id} ke periode ${targetPeriodId}`
+      : input.is_active !== undefined && Object.keys(patch).length === 2
+      ? `${input.is_active ? 'Mengaktifkan' : 'Menonaktifkan'} pengurus "${member.full_name}"`
+      : `Memperbarui data pengurus "${input.full_name ?? member.full_name}" (${member.division_code})`;
+
+    const audit = buildAudit(actor, {
+      action: 'UPDATE',
+      target_collection: 'board_members',
+      target_id: id,
+      summary,
+    });
+    tx.set(audit.ref, audit.data);
   });
-  batch.set(audit.ref, audit.data);
-  await batch.commit();
-  invalidateBoardCaches();
+
+  invalidateBoardCaches(isPeriodMove);
 }
 
 /** Geser urutan tampil satu langkah dalam divisi yang sama. */

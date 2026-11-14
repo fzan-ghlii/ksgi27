@@ -12,6 +12,11 @@ export const CreateInviteSchema = z.object({
     'GALERI',
     'EDUKASI',
   ]),
+  period_id: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z0-9_-]{1,128}$/, 'Format ID periode tidak valid.')
+    .optional(),
   assigned_position: z.string().min(3, 'Nama jabatan minimal 3 karakter'),
   recipient_name_hint: z.string().optional(),
   expires_in_days: z.coerce.number().min(1).max(30).default(7),

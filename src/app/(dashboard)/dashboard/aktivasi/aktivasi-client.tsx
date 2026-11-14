@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ActivationInvite, UserProfile } from '@/types';
+import { ActivationInvite, Period, UserProfile } from '@/types';
 import { InviteGeneratorModal } from '@/components/dashboard/invite-generator-modal';
 import { InviteTable } from '@/components/dashboard/invite-table';
 import { PageHeader } from '@/components/dashboard/page-parts';
@@ -13,10 +13,11 @@ import { toast } from 'sonner';
 
 interface AktivasiClientProps {
   initialInvites: ActivationInvite[];
+  periods: Period[];
   user: UserProfile;
 }
 
-export function AktivasiClient({ initialInvites, user }: AktivasiClientProps) {
+export function AktivasiClient({ initialInvites, periods, user }: AktivasiClientProps) {
   const [invites, setInvites] = React.useState<ActivationInvite[]>(initialInvites);
   const [refreshing, setRefreshing] = React.useState(false);
 
@@ -54,7 +55,7 @@ export function AktivasiClient({ initialInvites, user }: AktivasiClientProps) {
               <RefreshCw className={`h-3.5 w-3.5 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
               Perbarui
             </Button>
-            <InviteGeneratorModal user={user} onInviteCreated={fetchInvites} />
+            <InviteGeneratorModal user={user} periods={periods} onInviteCreated={fetchInvites} />
           </>
         }
       />
@@ -84,6 +85,7 @@ export function AktivasiClient({ initialInvites, user }: AktivasiClientProps) {
         {invites.length > 0 ? (
           <InviteTable
             invites={invites}
+            periods={periods}
             onRefresh={fetchInvites}
           />
         ) : (

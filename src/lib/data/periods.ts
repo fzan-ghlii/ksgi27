@@ -8,6 +8,7 @@ import { PeriodInput, PeriodUpdateInput } from '@/lib/schemas/content';
 import { badRequest, conflict, forbidden, notFound } from '@/lib/errors';
 import { buildAudit } from '@/lib/data/audit';
 import { invalidatePublicCache, revalidatePublicPaths } from '@/lib/data/public';
+import { isSafeDocId } from '@/lib/security/guards';
 
 function invalidatePeriodCaches() {
   invalidateSeededPeriodCache();
@@ -18,6 +19,12 @@ function invalidatePeriodCaches() {
 
 function periodIdFromRange(yearRange: string): string {
   return yearRange.replace('/', '-');
+}
+
+export async function getPeriodById(id: string): Promise<Period | null> {
+  if (!isSafeDocId(id)) return null;
+  const snap = await adminDb.collection('periods').doc(id).get();
+  return snap.exists ? (snap.data() as Period) : null;
 }
 
 export async function listPeriods(): Promise<Period[]> {

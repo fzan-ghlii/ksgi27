@@ -33,6 +33,34 @@ describe('CreateInviteSchema', () => {
     const res = CreateInviteSchema.safeParse(invalid);
     expect(res.success).toBe(false);
   });
+
+  it('accepts optional valid period_id and rejects unsafe characters', () => {
+    const withPeriod = CreateInviteSchema.safeParse({
+      target_role: 'member',
+      division_code: 'EDUKASI',
+      period_id: '2027-2028',
+      assigned_position: 'Staf Edukasi SPM',
+    });
+    expect(withPeriod.success).toBe(true);
+
+    expect(
+      CreateInviteSchema.safeParse({
+        target_role: 'member',
+        division_code: 'EDUKASI',
+        period_id: '../2027',
+        assigned_position: 'Staf Edukasi SPM',
+      }).success
+    ).toBe(false);
+
+    expect(
+      CreateInviteSchema.safeParse({
+        target_role: 'member',
+        division_code: 'EDUKASI',
+        period_id: '',
+        assigned_position: 'Staf Edukasi SPM',
+      }).success
+    ).toBe(false);
+  });
 });
 
 describe('CompleteActivationSchema', () => {

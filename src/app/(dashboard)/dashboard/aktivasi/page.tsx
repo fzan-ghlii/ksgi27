@@ -1,7 +1,9 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getAllowedInviteRoles } from '@/lib/auth/roles';
+import { seedInitialPeriodAndDivisions } from '@/lib/auth/bootstrap';
 import { listActivationInvites } from '@/lib/data/invites';
+import { listPeriods } from '@/lib/data/periods';
 import { AktivasiClient } from './aktivasi-client';
 
 export default async function DashboardAktivasiPage() {
@@ -21,8 +23,12 @@ export default async function DashboardAktivasiPage() {
     );
   }
 
-  const initialInvites = await listActivationInvites(user);
+  await seedInitialPeriodAndDivisions();
+  const [initialInvites, periods] = await Promise.all([
+    listActivationInvites(user),
+    listPeriods(),
+  ]);
 
-  return <AktivasiClient initialInvites={initialInvites} user={user} />;
+  return <AktivasiClient initialInvites={initialInvites} periods={periods} user={user} />;
 }
 
